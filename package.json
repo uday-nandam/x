@@ -1,0 +1,16 @@
+{
+  "name": "runway-radar",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Live arrivals and departures map for any airport, packaged as an LG webOS TV app.",
+  "scripts": {
+    "package": "ares-package app --outdir dist",
+    "install-tv": "ares-install --device tv dist/com.runwayradar.app_1.0.0_all.ipk",
+    "launch": "ares-launch --device tv com.runwayradar.app",
+    "deploy": "npm run package && npm run install-tv && npm run launch",
+    "serve": "npx http-server app -p 8123 -c-1"
+  },
+  "devDependencies": {
+    "@webos-tools/cli": "^3.0.0"
+  }
+}

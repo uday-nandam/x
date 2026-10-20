@@ -1,0 +1,14 @@
+{
+  "id": "com.runwayradar.app",
+  "version": "1.0.0",
+  "vendor": "Runway Radar",
+  "type": "web",
+  "main": "index.html",
+  "title": "Runway Radar",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "bgColor": "#0a1020",
+  "resolution": "1920x1080",
+  "disallowScrolling": true,
+  "requiredACG": []
+}

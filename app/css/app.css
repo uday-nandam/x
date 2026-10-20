@@ -1,0 +1,87 @@
+html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #0a1020;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; color: #e8efff; }
+#map { position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #0a1020; }
+.leaflet-container { background: #0a1020; }
+.tint { top: 0; left: 0; background: rgba(25, 80, 210, 0.42); pointer-events: none; }
+
+/* ---------- HUD ---------- */
+#hud { z-index: 1000; position: absolute; top: 40px; left: 48px; padding: 18px 28px 20px; border-radius: 18px;
+  background: rgba(8, 14, 32, 0.72); border: 1px solid rgba(140, 170, 255, 0.22); transition: transform 3s ease; }
+.hud-top { font-size: 46px; font-weight: 700; letter-spacing: 1px; }
+.hud-top #hud-time { margin-left: 22px; font-size: 34px; font-weight: 400; color: #a9bbe6; }
+.hud-counts { margin-top: 6px; font-size: 32px; color: #a9bbe6; }
+.hud-counts .arr { color: #5ee0ff; }
+.hud-counts .dep { color: #ffc15a; }
+#hud-name { margin-top: 6px; font-size: 22px; color: #7f93c4; max-width: 640px; }
+
+/* ---------- toasts ---------- */
+#toasts { z-index: 1000; position: absolute; left: 48px; bottom: 56px; transition: transform 3s ease; }
+.toast { margin-top: 12px; padding: 14px 26px; border-radius: 14px; font-size: 30px; background: rgba(8, 14, 32, 0.82);
+  border-left: 8px solid #5ee0ff; opacity: 1; transition: opacity 1s; }
+.toast.dep { border-left-color: #ffc15a; }
+.toast b { margin-right: 8px; }
+.toast.arr b { color: #5ee0ff; }
+.toast.dep b { color: #ffc15a; }
+.toast span { margin-left: 16px; font-size: 24px; color: #a9bbe6; }
+.toast.out { opacity: 0; }
+
+#status { z-index: 1000; position: absolute; top: 44px; right: 48px; font-size: 24px; color: #ffc15a; transition: transform 3s ease; }
+#status-dot { display: none; }
+#hint { z-index: 1000; position: absolute; bottom: 56px; right: 48px; font-size: 26px; color: #a9bbe6; padding: 10px 20px;
+  border-radius: 12px; background: rgba(8, 14, 32, 0.7); opacity: 1; transition: opacity 2s; }
+#hint.gone { opacity: 0; }
+#credits { z-index: 1000; padding: 2px 8px; border-radius: 6px; background: rgba(8, 14, 32, 0.6); position: absolute; bottom: 12px; right: 20px; font-size: 14px; color: rgba(200, 215, 255, 0.45); transition: transform 3s ease; }
+
+/* ---------- map markers ---------- */
+.apt .dot { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%;
+  background: #fff; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.18); }
+.apt .code { position: absolute; left: 14px; top: -14px; font-size: 24px; font-weight: 700; color: #fff; text-shadow: 0 1px 4px #000; }
+
+.ac .plane { position: absolute; width: 36px; height: 36px; margin: -18px 0 0 -18px; }
+.ac .plane svg { width: 100%; height: 100%; fill: currentColor; filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.8)); }
+.ac.ready { transition: transform 1s linear; }
+.ac.arr { color: #5ee0ff; }
+.ac.dep { color: #ffc15a; }
+.ac.other { color: rgba(190, 205, 240, 0.55); }
+.ac.other .plane { width: 20px; height: 20px; margin: -10px 0 0 -10px; }
+.ac .tag { position: absolute; left: 26px; top: -18px; white-space: nowrap; text-shadow: 0 1px 4px #000, 0 0 8px #000; }
+.ac.other .tag, .ac.notag .tag { display: none; }
+.ac.left .tag { left: auto; right: 26px; text-align: right; }
+.ac .chip { display: inline-block; vertical-align: 4px; margin-right: 10px; font-size: 14px; font-weight: 700; letter-spacing: 1px; padding: 1px 7px; border-radius: 6px; color: #08101f; text-shadow: none; }
+.ac.arr .chip { background: #5ee0ff; }
+.ac.dep .chip { background: #ffc15a; }
+.ac .city { display: inline; font-size: 28px; font-weight: 700; color: #fff; line-height: 30px; }
+.ac .meta { font-size: 20px; color: #c3d0f2; line-height: 24px; }
+
+/* ---------- overlays ---------- */
+.overlay { z-index: 2000; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(4, 8, 20, 0.78); }
+.overlay.hidden { display: none; }
+.panel { position: absolute; top: 50%; left: 50%; width: 900px; margin: -330px 0 0 -450px; padding: 36px 44px 28px;
+  border-radius: 24px; background: #101a38; border: 1px solid rgba(140, 170, 255, 0.3); }
+.panel.wide { width: 1500px; margin-left: -750px; margin-top: -440px; }
+#settings .panel { height: auto; margin-top: -200px; }
+.title { font-size: 40px; font-weight: 700; margin-bottom: 20px; }
+.help { margin-top: 24px; font-size: 22px; color: #7f93c4; }
+#settings-items .item { padding: 22px 28px; margin-top: 10px; font-size: 32px; border-radius: 14px; overflow: hidden; }
+#settings-items .item b { display: inline-block; width: 220px; }
+#settings-items .item span { color: #a9bbe6; }
+#settings-items .item.focus { background: #2a4ea3; color: #fff; }
+#settings-items .item.focus span { color: #fff; }
+
+#picker-query { font-size: 48px; font-weight: 700; letter-spacing: 3px; padding: 14px 24px; margin-bottom: 20px; min-height: 58px;
+  border-radius: 14px; background: #0a1128; border: 1px solid rgba(140, 170, 255, 0.25); }
+#picker-query.placeholder { color: #566794; font-size: 34px; font-weight: 400; letter-spacing: 0; line-height: 58px; padding-top: 0; padding-bottom: 0; }
+.cols { overflow: hidden; }
+#picker-kbd { float: left; width: 560px; }
+#picker-kbd .key { float: left; width: 68px; height: 68px; margin: 6px; line-height: 68px; text-align: center; font-size: 32px;
+  font-weight: 700; border-radius: 12px; background: #1b2a57; }
+#picker-kbd .key.wide { width: 68px; font-size: 24px; }
+#picker-kbd .key.focus, #picker-results .row.focus { background: #2f5fd0; color: #fff; }
+#picker-results { margin-left: 600px; }
+#picker-results .row { padding: 10px 20px; margin-bottom: 6px; border-radius: 12px; background: #16224a; overflow: hidden; height: 56px; }
+#picker-results .row b { float: left; width: 96px; font-size: 34px; line-height: 56px; }
+#picker-results .row span { display: block; margin-left: 100px; font-size: 24px; line-height: 30px; padding-top: 2px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#picker-results .row span i { display: block; font-style: normal; font-size: 19px; line-height: 24px; color: #a9bbe6; }
+#picker-results .row.focus span i { color: #dbe6ff; }
+#picker-results .more, #picker-results .empty { padding: 10px 20px; font-size: 22px; color: #7f93c4; }

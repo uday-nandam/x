@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Runway Radar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="map"></div>
+
+<div id="hud">
+  <div class="hud-top"><span id="hud-code">---</span><span id="hud-time"></span></div>
+  <div class="hud-counts"><span id="hud-arr" class="arr">0 arriving</span> &middot; <span id="hud-dep" class="dep">0 departing</span></div>
+  <div id="hud-name"></div>
+</div>
+
+<div id="toasts"></div>
+<div id="status"><span id="status-dot"></span><span id="status-text"></span></div>
+<div id="hint">Press OK for settings</div>
+<div id="credits">Traffic: adsb.lol / adsb.fi &middot; Map: Esri, HERE, Garmin, OpenStreetMap contributors</div>
+
+<div id="settings" class="overlay hidden">
+  <div class="panel">
+    <div class="title">Settings</div>
+    <div id="settings-items"></div>
+    <div class="help">&uarr;&darr; select &nbsp; &larr;&rarr; change &nbsp; OK choose &nbsp; Back close</div>
+  </div>
+</div>
+
+<div id="picker" class="overlay hidden">
+  <div class="panel wide">
+    <div class="title">Choose airport</div>
+    <div id="picker-query"></div>
+    <div class="cols">
+      <div id="picker-kbd"></div>
+      <div id="picker-results"></div>
+    </div>
+    <div class="help">Type a code or city &nbsp; OK choose &nbsp; Back cancel</div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="js/airports.js"></script>
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="js/data.js"></script>
+<script src="js/picker.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
