@@ -148,6 +148,35 @@ window.RR = window.RR || {};
       }
     }
     ctx.restore();
+    drawPin(s, e.legFrom, col);
+    drawPin(s, e.legTo, col);
+  }
+
+  // A labelled pin for an airport at either end of the route.
+  function drawPin(s, apt, col) {
+    if (!apt) return;
+    var p = s.bm.project(apt.lat, apt.lon, 0);
+    if (!p) return;
+    ctx.save();
+    ctx.fillStyle = 'rgba(8,14,34,0.9)';
+    ctx.strokeStyle = 'rgba(' + col + ',1)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.shadowColor = '#000';
+    ctx.shadowBlur = 6;
+    ctx.font = '700 24px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillText(apt.iata || apt.icao || '', p.x + 16, p.y + 2);
+    ctx.font = '16px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    ctx.fillStyle = 'rgba(200,215,255,0.85)';
+    ctx.fillText(apt.city || '', p.x + 16, p.y + 22);
+    ctx.restore();
   }
 
   function drawFocus(s, e, selected) {

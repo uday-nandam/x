@@ -59,7 +59,7 @@
       baseLat: ac.lat, baseLon: ac.lon, baseT: now, seen: now, history: [], announced: firstPoll,
       sx: 0, sy: 0, vis: false, showTag: true, side: '', shown: false, rotDeg: -999,
       el: el, planeEl: el.querySelector('.plane'), chipEl: el.querySelector('.chip'),
-      cityEl: el.querySelector('.city'), metaEl: el.querySelector('.meta')
+      cityEl: el.querySelector('.city'), metaEl: el.querySelector('.meta'), tagEl: el.querySelector('.tag'), dy: 0
     };
   }
 
@@ -298,7 +298,11 @@
     if (!key || !e.legFrom || !e.legTo) return S.bm.setFit(null);
     var pts = [{ lat: S.ap.lat, lon: S.ap.lon }, { lat: e.lat, lon: e.lon }, e.legFrom, e.legTo];
     if (e.history.length) pts.push({ lat: e.history[0][0], lon: e.history[0][1] });
-    S.bm.setFit(pts);
+    // Keep the route clear of the HUD (top left) and the detail card (right): size the margins from their real boxes.
+    var hud = $('hud').getBoundingClientRect(), card = $('card');
+    S.bm.setFit(pts, { top: Math.round(hud.bottom + 50), left: 150, bottom: 150, right: card.offsetWidth + 48 + 60 },
+      // Turn the map so the route runs left to right across the wide screen (origin left, destination right).
+      (RR.bearing(e.legFrom.lat, e.legFrom.lon, e.legTo.lat, e.legTo.lon) + 270) % 360);
   }
 
   // ---------- presenting: projection, DOM, canvas ----------
@@ -315,22 +319,33 @@
     var a = S.bm.project(S.ap.lat, S.ap.lon, 0);
     var placed = a ? [{ x: a.x - 12, y: a.y - 22, w: 110, h: 36 }] : [];
     placed.push({ x: 40, y: 32, w: 450, h: 200 });                                  // HUD
-    if (S.active) placed.push({ x: size.x - 640, y: 110, w: 620, h: 560 });        // detail card
+    if (S.active) placed.push({ x: size.x - 460, y: 100, w: 440, h: 320 });        // detail card
+    var pinned = S.selected, pinPts = pinned ? [pinned.legFrom, pinned.legTo, S.ap] : [];
+    for (var k = 0; k < pinPts.length; k++) {                                         // airport pins at the route's ends
+      var pp = pinPts[k] && S.bm.project(pinPts[k].lat, pinPts[k].lon, 0);
+      if (pp) placed.push({ x: pp.x - 14, y: pp.y - 18, w: 170, h: 52 });
+    }
     for (var i = 0; i < list.length; i++) {
       e = list[i];
       var W = Math.max((e.cityEl.textContent.length + 4) * 16, e.metaEl.textContent.length * 11) + 12;
-      var spots = [{ x: e.sx + 26, side: '' }, { x: e.sx - 26 - W, side: ' left' }], chosen = null;
+      var spots = [
+        { x: e.sx + 26, dy: 0, side: '' }, { x: e.sx - 26 - W, dy: 0, side: ' left' },
+        { x: e.sx + 26, dy: -76, side: '' }, { x: e.sx - 26 - W, dy: -76, side: ' left' },
+        { x: e.sx + 26, dy: 62, side: '' }, { x: e.sx - 26 - W, dy: 62, side: ' left' }
+      ], chosen = null;
       for (var s = 0; s < spots.length && !chosen; s++) {
-        var r = { x: spots[s].x, y: e.sy - 18, w: W, h: H };
+        var r = { x: spots[s].x, y: e.sy - 18 + spots[s].dy, w: W, h: H };
         if (r.x < 0 || r.x + r.w > size.x || r.y < 0 || r.y + r.h > size.y) continue;
         var hit = false;
         for (var j = 0; j < placed.length && !hit; j++) {
           var q = placed[j];
           hit = r.x < q.x + q.w && q.x < r.x + r.w && r.y < q.y + q.h && q.y < r.y + r.h;
         }
-        if (!hit) { chosen = r; e.side = spots[s].side; }
+        if (!hit) { chosen = r; e.side = spots[s].side; e.dy = spots[s].dy; }
       }
       if (chosen) placed.push(chosen);
+      if (!chosen) e.dy = 0;
+      if (e.tagEl.getAttribute('data-dy') !== String(e.dy)) { e.tagEl.style.marginTop = e.dy + 'px'; e.tagEl.setAttribute('data-dy', String(e.dy)); }
       e.showTag = !!chosen || e === S.selected;
       if (!chosen) e.side = '';
     }
@@ -396,7 +411,7 @@
     window.requestAnimationFrame(frame);
     var now = Date.now();
     if (!S.fancy && now - lastFrame < 50) return;             // lite mode: ~20 fps is plenty
-    var dt = Math.min(0.25, (now - (lastFrame || now)) / 1000);
+    var dt = Math.min(0.8, (now - (lastFrame || now)) / 1000);
     lastFrame = now;
     physics(now, dt);
     if (!S.fancy) present(now);

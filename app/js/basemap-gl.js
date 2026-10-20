@@ -132,6 +132,7 @@ window.RR = window.RR || {};
 
     return {
       is3D: true,
+      map: map,
 
       setView: function (ap, radiusNm) {
         readSize();
@@ -159,17 +160,17 @@ window.RR = window.RR || {};
 
       setOrbit: function (on) { orbit = on; },
 
-      // Frame a set of {lat, lon} points (a whole flight path) top-down-ish, leaving room for the detail card.
+      // Frame a set of {lat, lon} points (a whole flight path) top-down-ish inside `pad`, turned so `bearing` is up.
       // Pass null to return to the airport view.
-      setFit: function (points) {
+      setFit: function (points, pad, bearing) {
         fit = null;
         if (!points || !points.length) return;
         var b = new maplibregl.LngLatBounds();
         for (var i = 0; i < points.length; i++) b.extend([points[i].lon, points[i].lat]);
         var cam = map.cameraForBounds(b, {
-          padding: { top: 150, bottom: 140, left: 150, right: 720 }, bearing: 0, pitch: FIT_PITCH, maxZoom: 11
+          padding: pad || { top: 250, bottom: 150, left: 150, right: 520 }, bearing: bearing || 0, pitch: FIT_PITCH, maxZoom: 11
         });
-        if (cam) fit = { lat: cam.center.lat, lon: cam.center.lng, zoom: cam.zoom, pitch: FIT_PITCH };
+        if (cam) fit = { lat: cam.center.lat, lon: cam.center.lng, zoom: cam.zoom, pitch: FIT_PITCH, bearing: bearing || 0 };
       },
 
       // target: {lat, lon, hdg} to chase, or null to return to the airport view.
@@ -185,7 +186,7 @@ window.RR = window.RR || {};
         cur.zoom += (t.zoom - cur.zoom) * k;
         cur.pitch += (t.pitch - cur.pitch) * k;
         if (follow) cur.bearing = (lerpAngle(cur.bearing, follow.hdg + 25, k * 0.6) + 360) % 360;
-        else if (fit) cur.bearing = (lerpAngle(cur.bearing, 0, k * 0.6) + 360) % 360;
+        else if (fit) cur.bearing = (lerpAngle(cur.bearing, fit.bearing, k * 0.6) + 360) % 360;
         else if (orbit) cur.bearing = (cur.bearing + ORBIT_DEG_PER_SEC * dt) % 360;
         apply();
         map.triggerRepaint();

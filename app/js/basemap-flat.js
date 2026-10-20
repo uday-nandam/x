@@ -40,11 +40,12 @@ window.RR = window.RR || {};
       },
 
       // Frame a set of {lat, lon} points (a whole flight path), leaving room for the detail card; null restores the airport view.
-      setFit: function (points) {
+      setFit: function (points, pad) {
         if (!points || !points.length) { if (lastView) this.setView(lastView[0], lastView[1]); return; }
         var ll = [];
         for (var i = 0; i < points.length; i++) ll.push([points[i].lat, points[i].lon]);
-        map.fitBounds(ll, { paddingTopLeft: [150, 150], paddingBottomRight: [720, 140], maxZoom: 11, animate: false });
+        pad = pad || { top: 250, bottom: 150, left: 150, right: 520 };
+        map.fitBounds(ll, { paddingTopLeft: [pad.left, pad.top], paddingBottomRight: [pad.right, pad.bottom], maxZoom: 11, animate: false });
       },
 
       update: function () {},

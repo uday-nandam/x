@@ -35,11 +35,11 @@ unless you extend them in the Developer Mode app.
 **Magic Remote (pointer + scroll wheel)**
 
 * Point at a flight to see its details card (route, progress bar, altitude, speed, vertical rate, heading, aircraft, registration)
-  and its route drawn on the map: solid where it has flown, dotted where it's headed. Click to pin it: the camera then zooms out to frame the flight's whole route, and eases back to the airport when you unpin.
+  and its route drawn on the map: solid where it has flown, dotted where it's headed, with both airports pinned. The 3D map turns so the route runs left to right. Click to pin it: the camera then zooms out to frame the flight's whole route, and eases back to the airport when you unpin.
 * Scroll the wheel to step through every visible flight, arrivals first.
 * Click empty space to unpin. A gear button appears in the corner while the pointer is active.
 
-**Zoom**: on-screen `+` / `−` buttons (shown while the pointer is active), the red / green remote buttons (or `-` / `+` on a keyboard), in steps of 5-100 nm. 5 nm is close enough to see the runways. The zoom you start at is *Default zoom* in settings, or press *Save zoom* to make whatever you're looking at the default.
+**Zoom**: on-screen `+` / `−` buttons (shown while the pointer is active), the red / green remote buttons (or `-` / `+` on a keyboard), in steps of 5-100 nm. 5 nm is close enough to see the runways, with their labels (3D mode). The zoom you start at is *Default zoom* in settings, or press *Save zoom* to make whatever you're looking at the default.
 
 **Standard remote**: Left/Right (or Up/Down) steps through flights, OK or yellow/blue opens settings, Back unpins.
 
