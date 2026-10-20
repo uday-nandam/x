@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Runway Radar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<div id="map"></div>
+<canvas id="fx"></canvas>
+<div id="markers"></div>
+<div id="vignette"></div>
+
+<div id="hud">
+  <div class="hud-top"><span id="hud-code">---</span><span id="hud-time"></span></div>
+  <div class="hud-counts"><span id="hud-arr" class="arr">0 arriving</span><span class="sep">&middot;</span><span id="hud-dep" class="dep">0 departing</span></div>
+  <div id="hud-name"></div>
+</div>
+
+<div id="gear" title="Settings">&#9881;</div>
+<div id="zoom"><div id="zoom-in" title="Zoom in">+</div><div id="zoom-label"></div><div id="zoom-out" title="Zoom out">&minus;</div></div>
+
+<div id="card" class="hidden">
+  <div class="card-head"><span id="card-chip" class="chip">ARR</span><span id="card-flight"></span><span id="card-type"></span>
+  <span id="card-owner"></span></div>
+  <div id="card-route">
+    <div class="end"><b id="rt-from"></b><span id="rt-from-city"></span></div>
+    <div class="mid"><div class="bar"><i id="rt-prog"></i><u id="rt-plane"></u></div><span id="rt-eta"></span></div>
+    <div class="end right"><b id="rt-to"></b><span id="rt-to-city"></span></div>
+  </div>
+  <div id="card-noroute">Route not available</div>
+  <div class="stats">
+    <div><label>Altitude</label><b id="st-alt"></b></div>
+    <div><label>Speed</label><b id="st-spd"></b></div>
+    <div><label>V/S</label><b id="st-vs"></b></div>
+    <div><label>Track</label><b id="st-hdg"></b></div>
+    <div><label>From apt.</label><b id="st-dist"></b></div>
+    <div><label>Reg.</label><b id="st-reg"></b></div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<div id="status"></div>
+<div id="hint"></div>
+<div id="credits">Traffic: adsb.lol / adsb.fi &middot; Map: OpenFreeMap, OpenStreetMap contributors, Esri</div>
+
+<div id="settings" class="overlay hidden">
+  <div class="panel">
+    <div class="title">Settings</div>
+    <div id="settings-items"></div>
+    <div class="help">&uarr;&darr; select &nbsp; &larr;&rarr; change &nbsp; OK choose &nbsp; Back close</div>
+  </div>
+</div>
+
+<div id="picker" class="overlay hidden">
+  <div class="panel wide">
+    <div class="title">Choose airport<span id="picker-close">&#10005;</span></div>
+    <div id="picker-query"></div>
+    <div class="cols">
+      <div id="picker-kbd"></div>
+      <div id="picker-results"></div>
+    </div>
+    <div class="help">Type a code or city &nbsp; OK choose &nbsp; Back cancel &nbsp; Scroll to browse</div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="js/airports.js"></script>
+<script src="js/data.js"></script>
+<script src="js/picker.js"></script>
+<script src="js/boot.js"></script>
+</body>
+</html>
