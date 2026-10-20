@@ -59,7 +59,8 @@ on OLED panels.
 
 * **Traffic**: [adsb.lol](https://adsb.lol) `v2/point` (falls back to [adsb.fi](https://adsb.fi)), polled every 5 s.
   Positions are dead-reckoned between polls so planes glide.
-* **Routes**: per-callsign schedule files from adsb.lol's standing-data repo give origin/destination. A flight is an
+* **Routes**: per-callsign schedule files from adsb.lol's standing-data repo give origin/destination, with [adsbdb](https://www.adsbdb.com) as a second source. Both are keyed by callsign, and airlines (Southwest especially) reuse a callsign for several legs a day, so the app keeps every candidate and uses the one that actually fits where the aircraft is. If none does it says so, and for a flight clearly arriving at or leaving the airport you're watching it still draws the track and the leg it knows.
+* **Aircraft details**: operator, model and registration come from adsbdb's aircraft registry when you hover or pin a flight (private and general-aviation flights have no route, but do have these). A flight is an
   *arrival* / *departure* if the selected airport is its destination / origin. With no route known, a flight that's low,
   descending (or climbing) and pointed at (or away from) the airport is classified from its motion instead.
 * **Map**: 3D mode uses MapLibre GL with OpenFreeMap vector tiles and a custom night style, with the aircraft drawn by

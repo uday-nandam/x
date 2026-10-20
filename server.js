@@ -6,7 +6,7 @@ const path = require('path');
 
 const ROOT = path.join(__dirname, 'app');
 const PORT = process.env.PORT || 8123;
-const ALLOWED = ['api.adsb.lol', 'opendata.adsb.fi', 'vrs-standing-data.adsb.lol'];
+const ALLOWED = ['api.adsb.lol', 'opendata.adsb.fi', 'vrs-standing-data.adsb.lol', 'api.adsbdb.com'];
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
   '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.map': 'application/json'

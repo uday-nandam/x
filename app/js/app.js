@@ -85,9 +85,10 @@
 
   function refreshEntry(e) {
     var ac = e.ac;
-    var route = ac.airliner ? RR.cachedRoute(ac.callsign) : undefined;
-    e.routeSuspect = !!route && !RR.routePlausible(ac, route);
-    if (e.routeSuspect) route = null;                       // wrong flight's schedule: treat as unknown
+    var pick = ac.airliner ? RR.pickRoute(ac) : { settled: true, route: null, suspect: false };
+    var route = pick.route;
+    e.routeSuspect = pick.suspect;                           // callsign reused for another leg: treat the route as unknown
+    e.routeSettled = pick.settled;
     var c = RR.classify(ac, S.ap, route);
     e.route = route;
     e.legFrom = c.from || null;
@@ -107,7 +108,7 @@
       if (e.metaEl.textContent !== meta) e.metaEl.textContent = meta;
     }
     // Wait for the route lookup to settle so the toast can say where the flight is from / headed.
-    if (isFlight && !e.announced && e.dist < 30 && route !== undefined) announce(e);
+    if (isFlight && !e.announced && e.dist < 30 && pick.settled) announce(e);
   }
 
   function announce(e) {
@@ -139,7 +140,7 @@
       if (e.history.length > 700) e.history.shift();
       refreshEntry(e);
 
-      if (ac.airliner && !e.routeAsked && e.dist < Math.max(S.radius, 25) * 1.8 && RR.cachedRoute(ac.callsign) === undefined) {
+      if (ac.airliner && !e.routeAsked && e.dist < Math.max(S.radius, 25) * 1.8 && !e.routeSettled) {
         e.routeAsked = true;
         requestRoute(e, generation);
       }
@@ -156,7 +157,7 @@
     RR.requestRoute(e.ac.callsign, function () {
       if (gen !== generation || S.entries[e.id] !== e) return;
       refreshEntry(e);
-    });
+    }, e.ac);
   }
 
   function poll() {
@@ -292,11 +293,13 @@
   var fitKey = '';
 
   function syncFit() {
-    var e = S.selected, key = e && !follow ? e.id + (e.legTo ? ':r' : '') : '';
+    var e = S.selected, key = e && !follow ? e.id + (e.legTo || e.legFrom ? ':r' : '') : '';
     if (key === fitKey) return;
     fitKey = key;
-    if (!key || !e.legFrom || !e.legTo) return S.bm.setFit(null);
-    var pts = [{ lat: S.ap.lat, lon: S.ap.lon }, { lat: e.lat, lon: e.lon }, e.legFrom, e.legTo];
+    if (!key) return S.bm.setFit(null);
+    var pts = [{ lat: S.ap.lat, lon: S.ap.lon }, { lat: e.lat, lon: e.lon }];
+    if (e.legFrom) pts.push(e.legFrom);
+    if (e.legTo) pts.push(e.legTo);
     if (e.history.length) pts.push({ lat: e.history[0][0], lon: e.history[0][1] });
     // Keep the route clear of the HUD (top left) and the detail card (right): size the margins from their real boxes.
     var hud = $('hud').getBoundingClientRect(), card = $('card');

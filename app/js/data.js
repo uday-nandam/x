@@ -10,6 +10,7 @@ window.RR = window.RR || {};
     function (lat, lon, nm) { return 'https://opendata.adsb.fi/api/v2/lat/' + lat + '/lon/' + lon + '/dist/' + nm; }
   ];
   var ROUTE_URL = 'https://vrs-standing-data.adsb.lol/routes/';
+  var ADSBDB = 'https://api.adsbdb.com/v0/';
 
   // ICAO airline designator -> IATA, for the "AA1880" style flight numbers people recognise.
   var AIRLINES = {
@@ -91,7 +92,9 @@ window.RR = window.RR || {};
       vs: vs,
       type: a.t || '',
       desc: a.desc || '',
-      reg: a.r || ''
+      reg: a.r || '',
+      cat: a.category || '',
+      mil: !!(typeof a.dbFlags === 'number' && (a.dbFlags & 1))
     };
   }
 
@@ -115,10 +118,10 @@ window.RR = window.RR || {};
   };
 
   // ---------- routes ----------
-  var routeCache = {};     // callsign -> {route|null}; kept for the session, schedules are static
+  var routeCache = {};     // callsign -> {routes: [candidate legs...]}; kept for the session
   var routeQueue = [];
   var routeActive = 0;
-  var ROUTE_PARALLEL = 3;
+  var ROUTE_PARALLEL = 5;
 
   function parseRoute(j) {
     var list = j && j._airports;
@@ -134,33 +137,59 @@ window.RR = window.RR || {};
     return legs;
   }
 
+  // adsbdb knows many callsigns the standing-data schedule doesn't (charters, business-jet operators, some foreign carriers).
+  function parseAdsbdbRoute(j) {
+    var fr = j && j.response && j.response.flightroute;
+    if (!fr || !fr.origin || !fr.destination) return null;
+    function leg(a) {
+      return { iata: a.iata_code || '', icao: a.icao_code || '', city: a.municipality || a.iata_code || a.icao_code || '',
+        lat: a.latitude, lon: a.longitude };
+    }
+    return [leg(fr.origin), leg(fr.destination)];
+  }
+
   function pumpRoutes() {
     while (routeActive < ROUTE_PARALLEL && routeQueue.length) {
       (function (job) {
         routeActive++;
         var cs = job.cs;
-        getJSON(ROUTE_URL + cs.slice(0, 2) + '/' + cs + '.json', 10000, function (err, data) {
+        function finish(routes) {
           routeActive--;
-          var route = err ? null : parseRoute(data);
-          routeCache[cs] = { route: route };
-          for (var i = 0; i < job.cbs.length; i++) job.cbs[i](route);
+          routeCache[cs] = { routes: routes };
+          for (var i = 0; i < job.cbs.length; i++) job.cbs[i](routes);
           pumpRoutes();
+        }
+        getJSON(ROUTE_URL + cs.slice(0, 2) + '/' + cs + '.json', 10000, function (err, data) {
+          var r1 = err ? null : parseRoute(data);
+          // Callsigns get reused for different legs; only skip the second source if the first fits where the plane is.
+          if (r1 && (!job.ac || RR.routePlausible(job.ac, r1))) return finish([r1]);
+          getJSON(ADSBDB + 'callsign/' + cs, 10000, function (err2, data2) {
+            var r2 = err2 ? null : parseAdsbdbRoute(data2), list = [];
+            if (r1) list.push(r1);
+            if (r2) list.push(r2);
+            finish(list);
+          });
         });
       })(routeQueue.shift());
     }
   }
 
-  // undefined = not looked up yet, null = looked up and no route known.
-  RR.cachedRoute = function (cs) {
-    var c = routeCache[cs];
-    return c ? c.route : undefined;
+  // Which cached candidate route (if any) fits where the aircraft is now. `settled` is false until the lookup has finished;
+  // `suspect` means routes exist for the callsign but none of them matches this aircraft (reused callsign).
+  RR.pickRoute = function (ac) {
+    var c = routeCache[ac.callsign];
+    if (!c) return { settled: false, route: null, suspect: false };
+    for (var i = 0; i < c.routes.length; i++) {
+      if (RR.routePlausible(ac, c.routes[i])) return { settled: true, route: c.routes[i], suspect: false };
+    }
+    return { settled: true, route: null, suspect: c.routes.length > 0 };
   };
 
-  RR.requestRoute = function (cs, cb) {
+  RR.requestRoute = function (cs, cb, ac) {
     for (var i = 0; i < routeQueue.length; i++) {
       if (routeQueue[i].cs === cs) { routeQueue[i].cbs.push(cb); return; }
     }
-    routeQueue.push({ cs: cs, cbs: [cb] });
+    routeQueue.push({ cs: cs, cbs: [cb], ac: ac });
     pumpRoutes();
   };
 
@@ -202,7 +231,12 @@ window.RR = window.RR || {};
       res.to = kind === 'arriving' ? route[i] : route[i + 1];
       return res;
     }
-    if (h) res.kind = h;
+    if (h) {
+      // No schedule, but we know one end of the trip: the airport this aircraft is clearly arriving at / leaving.
+      var here = { iata: ap.iata, icao: ap.icao, city: ap.city || ap.name, lat: ap.lat, lon: ap.lon };
+      res.kind = h;
+      if (h === 'arriving') res.to = here; else res.from = here;
+    }
     return res;
   };
 
@@ -216,6 +250,36 @@ window.RR = window.RR || {};
       }
     }
     return false;
+  };
+
+  // ---------- aircraft registry (who operates it, what it is) ----------
+  var infoCache = {};     // hex -> {info|null, cbs|null}
+
+  RR.requestInfo = function (hex, cb) {
+    var c = infoCache[hex];
+    if (c && !c.cbs) return cb(c.info);
+    if (c) return c.cbs.push(cb);
+    c = infoCache[hex] = { info: null, cbs: [cb] };
+    getJSON(ADSBDB + 'aircraft/' + hex, 10000, function (err, data) {
+      var a = !err && data && data.response && data.response.aircraft;
+      c.info = a ? {
+        type: a.type || '', manufacturer: a.manufacturer || '', registration: a.registration || '',
+        owner: a.registered_owner || '', country: a.registered_owner_country_name || ''
+      } : null;
+      var cbs = c.cbs;
+      c.cbs = null;
+      for (var i = 0; i < cbs.length; i++) cbs[i](c.info);
+    });
+  };
+
+  // A plain-language kind for flights that have no airline schedule.
+  RR.describe = function (ac) {
+    if (ac.mil) return 'Military';
+    if (ac.cat === 'A7') return 'Helicopter';
+    if (ac.cat === 'A1' || ac.cat === 'A2') return 'Light aircraft';
+    if (!ac.callsign || /^N\d/.test(ac.callsign)) return 'General aviation';
+    if (!ac.airliner) return 'Private or charter';
+    return '';
   };
 
   RR.flightLabel = function (cs) {

@@ -55,6 +55,7 @@ body.pointer #zoom { opacity: 1; pointer-events: auto; }
 #card.dep .chip { background: #ffc15a; }
 #card-flight { font-size: 34px; font-weight: 700; letter-spacing: 1px; }
 #card-type { display: block; margin-top: 0; font-size: 16px; color: #8fa6d8; overflow: hidden; text-overflow: ellipsis; }
+#card-owner { display: block; font-size: 14px; color: #a9bbe6; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #card-route { position: relative; margin-top: 12px; height: 62px; }
 #card-route .end { position: absolute; top: 0; left: 0; width: 100px; }
 #card-route .end.right { left: auto; right: 0; text-align: right; }

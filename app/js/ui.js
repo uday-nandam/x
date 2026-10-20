@@ -53,25 +53,42 @@ window.RR = window.RR || {};
     }
     els.chip.textContent = kind === 'arr' ? 'ARR' : kind === 'dep' ? 'DEP' : 'FLT';
     els.flight.textContent = ac.callsign ? RR.flightLabel(ac.callsign) : (ac.reg || ac.id.toUpperCase());
-    els.type.textContent = ac.desc || ac.type || '';
+    if (!e.infoAsked) {                         // operator / model from the aircraft registry, fetched on demand
+      e.infoAsked = true;
+      RR.requestInfo(ac.id, function (info) { e.info = info; });
+    }
+    var info = e.info, kindText = RR.describe(ac);
+    els.type.textContent = info && info.type ? (info.manufacturer ? info.manufacturer + ' ' : '') + info.type : (ac.desc || ac.type || '');
+    var parts = [];
+    if (info && info.owner) parts.push(info.owner);
+    if (kindText && (!e.route || !(info && info.owner))) parts.push(kindText);
+    if (info && info.country && info.country !== 'United States') parts.push(info.country);
+    els.owner.textContent = parts.join(' \u00b7 ');
 
-    if (e.legFrom && e.legTo) {
+    if (e.legFrom || e.legTo) {
       var from = e.legFrom, to = e.legTo;
-      var dFrom = RR.distNm(from.lat, from.lon, e.lat, e.lon), dTo = RR.distNm(e.lat, e.lon, to.lat, to.lon);
-      var prog = Math.max(0.02, Math.min(0.98, dFrom / Math.max(1, dFrom + dTo)));
-      els.from.textContent = from.iata || from.icao;
-      els.fromCity.textContent = from.city;
-      els.to.textContent = to.iata || to.icao;
-      els.toCity.textContent = to.city;
-      els.prog.style.width = (prog * 100).toFixed(1) + '%';
+      function end(codeEl, cityEl, leg) {
+        codeEl.textContent = leg ? (leg.iata || leg.icao) : '?';
+        cityEl.textContent = leg ? leg.city : 'Unknown';
+      }
+      end(els.from, els.fromCity, from);
+      end(els.to, els.toCity, to);
+      var dFrom = from ? RR.distNm(from.lat, from.lon, e.lat, e.lon) : 0, dTo = to ? RR.distNm(e.lat, e.lon, to.lat, to.lon) : 0;
+      // With one end unknown, the bar just shows which side of the trip the aircraft is on.
+      var prog = from && to ? Math.max(0.02, Math.min(0.98, dFrom / Math.max(1, dFrom + dTo))) : (to ? 0.9 : 0.1);
+      els.prog.style.width = from && to ? (prog * 100).toFixed(1) + '%' : (to ? '0%' : '0%');
       els.planeDot.style.left = (prog * 100).toFixed(1) + '%';
-      els.eta.textContent = ac.gs > 60 ? num(dTo) + ' nm to go · ' + duration(dTo / ac.gs * 60) : num(dTo) + ' nm to go';
+      if (to) els.eta.textContent = ac.gs > 60 ? num(dTo) + ' nm to go \u00b7 ' + duration(dTo / ac.gs * 60) : num(dTo) + ' nm to go';
+      else els.eta.textContent = num(dFrom) + ' nm out';
       els.route.style.display = '';
-      els.noroute.style.display = 'none';
+      els.noroute.style.display = (from && to) ? 'none' : '';
+      if (!(from && to)) els.noroute.textContent = (to ? 'Origin' : 'Destination') + ' unknown \u2014 no schedule matches this flight';
     } else {
       els.route.style.display = 'none';
       els.noroute.style.display = '';
-      els.noroute.textContent = e.routeSuspect ? 'Route unverified \u2014 schedule data doesn\u2019t match this flight' : 'Route not available';
+      els.noroute.textContent = e.routeSuspect ? 'Route unverified \u2014 schedule data doesn\u2019t match this flight' :
+        ac.airliner && !e.routeSettled ? 'Looking up route\u2026' :
+        kindText && kindText !== 'Private or charter' ? kindText + ' flights don\u2019t publish a route' : 'No schedule on file for this callsign';
     }
 
     els.alt.textContent = e.alt < 100 ? 'Ground' : num(e.alt) + ' ft';
@@ -221,12 +238,12 @@ window.RR = window.RR || {};
   RR.ui = {
     init: function () {
       var ids = ['hud-code', 'hud-time', 'hud-arr', 'hud-dep', 'hud-name', 'card', 'card-chip', 'card-flight', 'card-type',
-        'card-route', 'card-noroute', 'rt-from', 'rt-from-city', 'rt-to', 'rt-to-city', 'rt-prog', 'rt-plane', 'rt-eta',
+        'card-route', 'card-noroute', 'card-owner', 'rt-from', 'rt-from-city', 'rt-to', 'rt-to-city', 'rt-prog', 'rt-plane', 'rt-eta',
         'st-alt', 'st-spd', 'st-vs', 'st-hdg', 'st-dist', 'st-reg', 'toasts', 'status', 'hint', 'settings', 'settings-items', 'zoom-label'];
       for (var i = 0; i < ids.length; i++) els[ids[i]] = $(ids[i]);
       els.code = els['hud-code']; els.time = els['hud-time']; els.arr = els['hud-arr']; els.dep = els['hud-dep'];
       els.name = els['hud-name']; els.chip = els['card-chip']; els.flight = els['card-flight']; els.type = els['card-type'];
-      els.route = els['card-route']; els.noroute = els['card-noroute'];
+      els.owner = els['card-owner']; els.route = els['card-route']; els.noroute = els['card-noroute'];
       els.from = els['rt-from']; els.fromCity = els['rt-from-city']; els.to = els['rt-to']; els.toCity = els['rt-to-city'];
       els.prog = els['rt-prog']; els.planeDot = els['rt-plane']; els.eta = els['rt-eta'];
       els.alt = els['st-alt']; els.spd = els['st-spd']; els.vs = els['st-vs']; els.hdg = els['st-hdg'];

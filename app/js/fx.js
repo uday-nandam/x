@@ -109,7 +109,7 @@ window.RR = window.RR || {};
   // The flight's path: what it has actually flown (solid, at its real altitude) plus an estimate from the aircraft's
   // current position to its destination (dotted). Where we missed the start of the flight, a faint dotted origin leg.
   function drawRoute(s, e) {
-    if (!e.legFrom || !e.legTo) return;
+    if (!e.legFrom && !e.legTo) return;
     var col = rgb(e.kind), i, pts = [], h = e.history;
     ctx.save();
     ctx.lineCap = 'round';
@@ -123,7 +123,8 @@ window.RR = window.RR || {};
     pathThrough(pts);
     ctx.stroke();
 
-    // estimate to the destination
+    // estimate to the destination (or the airport it's arriving at)
+    if (e.legTo) {
     var rest = RR.greatCircle({ lat: e.lat, lon: e.lon }, e.legTo, 64);
     var total = RR.distNm(e.lat, e.lon, e.legTo.lat, e.legTo.lon), rp = [];
     for (i = 0; i < rest.length; i++) rp.push(s.bm.project(rest[i][0], rest[i][1], profile(e, total * i / (rest.length - 1), total)));
@@ -133,9 +134,10 @@ window.RR = window.RR || {};
     ctx.beginPath();
     pathThrough([{ x: e.sx, y: e.sy }].concat(rp));
     ctx.stroke();
+    }
 
     // unobserved start of the flight
-    if (h.length) {
+    if (e.legFrom && h.length) {
       var first = h[0], gap = RR.distNm(e.legFrom.lat, e.legFrom.lon, first[0], first[1]);
       if (gap > 8) {
         var back = RR.greatCircle(e.legFrom, { lat: first[0], lon: first[1] }, 40), bp = [];
@@ -148,11 +150,11 @@ window.RR = window.RR || {};
       }
     }
     ctx.restore();
-    var pf = s.bm.project(e.legFrom.lat, e.legFrom.lon, 0), pt = s.bm.project(e.legTo.lat, e.legTo.lon, 0);
+    var pf = e.legFrom ? s.bm.project(e.legFrom.lat, e.legFrom.lon, 0) : null, pt = e.legTo ? s.bm.project(e.legTo.lat, e.legTo.lon, 0) : null;
     var me = { x: e.sx, y: e.sy };
     function near(a, b) { return a && b && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < 100; }
-    drawPin(s, e.legFrom, col, pf, near(me, pf) ? pt : me);
-    drawPin(s, e.legTo, col, pt, near(me, pt) ? pf : me);
+    drawPin(s, e.legFrom, col, pf, near(me, pf) ? (pt || { x: pf.x - 1, y: pf.y }) : me);
+    drawPin(s, e.legTo, col, pt, near(me, pt) ? (pf || { x: pt.x + 1, y: pt.y }) : me);
   }
 
   // A labelled pin for an airport at either end of the route. `other` is where the route heads from this pin on screen;
