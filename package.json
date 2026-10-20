@@ -8,9 +8,13 @@
     "install-tv": "ares-install --device tv dist/com.runwayradar.app_1.0.0_all.ipk",
     "launch": "ares-launch --device tv com.runwayradar.app",
     "deploy": "npm run package && npm run install-tv && npm run launch",
-    "serve": "npx http-server app -p 8123 -c-1"
+    "serve": "node server.js",
+    "start": "node server.js"
   },
   "devDependencies": {
     "@webos-tools/cli": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18"
   }
 }
