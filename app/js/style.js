@@ -5,9 +5,9 @@ RR.darkStyle = function () {
   var name = ['coalesce', ['get', 'name:latin'], ['get', 'name']];
   var font = ['Noto Sans Regular'], bold = ['Noto Sans Bold'];
   var C = {
-    bg: '#0c1636', water: '#050a1f', wood: '#0f2145', grass: '#0f2248', res: '#142450', park: '#112a55',
-    road: '#2a468f', roadMajor: '#4a73d6', rail: '#1d3270', runway: '#9fbcff', apron: '#243d82',
-    text: '#a9c0ff', halo: '#070d26', bld: '#2a468f'
+    bg: '#0c1636', water: '#060b21', wood: '#0d1b3d', grass: '#0d1c40', res: '#101e45', park: '#0e2048',
+    road: '#182c63', roadMajor: '#243f85', rail: '#14275a', runway: '#9fbcff', apron: '#243d82',
+    text: '#8aa2e0', halo: '#070d26', bld: '#2a468f'
   };
   function road(id, filter, color, widths, minzoom) {
     return {
@@ -38,29 +38,19 @@ RR.darkStyle = function () {
         paint: { 'line-color': C.runway, 'line-width': ['interpolate', ['linear'], ['zoom'], 9, 1.5, 14, 14] } },
       { id: 'taxiway', type: 'line', source: 'omt', 'source-layer': 'aeroway', minzoom: 12, filter: ['==', 'class', 'taxiway'],
         paint: { 'line-color': C.runway, 'line-opacity': 0.5, 'line-width': ['interpolate', ['linear'], ['zoom'], 12, 0.5, 14, 3] } },
-      road('minor', ['in', 'class', 'minor', 'service', 'tertiary'], C.road, [9, 0.2, 14, 2.4], 11),
-      road('secondary', ['in', 'class', 'secondary', 'primary'], C.road, [7, 0.4, 14, 4], 8),
-      road('major', ['in', 'class', 'motorway', 'trunk'], C.roadMajor, [5, 0.4, 14, 5], 5),
-      { id: 'rail', type: 'line', source: 'omt', 'source-layer': 'transportation', minzoom: 9, filter: ['==', 'class', 'rail'],
-        paint: { 'line-color': C.rail, 'line-width': 1 } },
-      { id: 'boundary', type: 'line', source: 'omt', 'source-layer': 'boundary', filter: ['<=', 'admin_level', 4],
-        paint: { 'line-color': '#4466bb', 'line-opacity': 0.5, 'line-dasharray': [3, 2], 'line-width': 1 } },
+      road('minor', ['in', 'class', 'minor', 'service', 'tertiary'], C.road, [11, 0.2, 14, 2.2], 12),
+      road('secondary', ['in', 'class', 'secondary', 'primary'], C.road, [9, 0.3, 14, 3.5], 10),
+      road('major', ['in', 'class', 'motorway', 'trunk'], C.roadMajor, [6, 0.4, 14, 4.5], 6),
       { id: 'buildings', type: 'fill-extrusion', source: 'omt', 'source-layer': 'building', minzoom: 13,
         paint: {
           'fill-extrusion-color': C.bld, 'fill-extrusion-opacity': 0.85,
           'fill-extrusion-height': ['coalesce', ['get', 'render_height'], 8],
           'fill-extrusion-base': ['coalesce', ['get', 'render_min_height'], 0]
         } },
-      { id: 'water-label', type: 'symbol', source: 'omt', 'source-layer': 'water_name', minzoom: 6,
-        layout: { 'text-field': name, 'text-font': font, 'text-size': 14, 'text-letter-spacing': 0.15 },
-        paint: { 'text-color': '#5f7fd0', 'text-halo-color': C.halo, 'text-halo-width': 1 } },
-      { id: 'place-small', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 8,
-        filter: ['in', 'class', 'town', 'village', 'suburb'],
-        layout: { 'text-field': name, 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 8, 12, 13, 17] },
-        paint: { 'text-color': C.text, 'text-opacity': 0.75, 'text-halo-color': C.halo, 'text-halo-width': 1.5 } },
-      { id: 'place-city', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 4, filter: ['==', 'class', 'city'],
-        layout: { 'text-field': name, 'text-font': bold, 'text-size': ['interpolate', ['linear'], ['zoom'], 4, 11, 10, 18], 'text-letter-spacing': 0.05 },
-        paint: { 'text-color': '#d4e0ff', 'text-halo-color': C.halo, 'text-halo-width': 2 } }
+      { id: 'place-city', type: 'symbol', source: 'omt', 'source-layer': 'place', minzoom: 5, filter: ['==', 'class', 'city'],
+        layout: { 'text-field': name, 'text-font': font, 'text-size': ['interpolate', ['linear'], ['zoom'], 5, 11, 11, 15],
+          'text-letter-spacing': 0.08, 'text-padding': 60, 'text-max-width': 8 },
+        paint: { 'text-color': C.text, 'text-opacity': 0.55, 'text-halo-color': C.halo, 'text-halo-width': 1.5 } }
     ]
   };
 };

@@ -7,6 +7,7 @@
   var PLANE_PATH = 'M12 1.5c.9 0 1.6.9 1.6 2v5.3l8.4 5v2.2l-8.4-2.4v4.6l2.3 1.7V22L12 21l-3.9 1v-1.1l2.3-1.7v-4.6L2 16v-2.2l8.4-5V3.5c0-1.1.7-2 1.6-2z';
   var COLORS = { arriving: 0x5ee0ff, departing: 0xffc15a, other: 0x6d86bd };
   var RAD = Math.PI / 180;
+  RR.RADII = [5, 10, 15, 25, 40, 60, 100];
 
   function $(id) { return document.getElementById(id); }
   function storeGet(k) { try { return window.localStorage.getItem(k); } catch (e) { return null; } }
@@ -28,7 +29,7 @@
   if (query('orbit')) settings.orbit = query('orbit') !== '0';
 
   var S = {
-    settings: settings, ap: null, bm: null, fancy: false, entries: {}, selected: null, hover: null, active: null,
+    settings: settings, radius: settings.radius, ap: null, bm: null, fancy: false, entries: {}, selected: null, hover: null, active: null,
     pointer: { x: -1, y: -1, t: 0 }
   };
   RR.state = S;
@@ -85,8 +86,12 @@
   function refreshEntry(e) {
     var ac = e.ac;
     var route = ac.airliner ? RR.cachedRoute(ac.callsign) : undefined;
+    e.routeSuspect = !!route && !RR.routePlausible(ac, route);
+    if (e.routeSuspect) route = null;                       // wrong flight's schedule: treat as unknown
     var c = RR.classify(ac, S.ap, route);
     e.route = route;
+    e.legFrom = c.from || null;
+    e.legTo = c.to || null;
     e.dist = c.dist;
     e.kind = c.kind;
     e.city = c.city;
@@ -129,11 +134,12 @@
       e.ac = ac;
       e.seen = now;
       e.baseLat = ac.lat; e.baseLon = ac.lon; e.baseT = now;
-      e.history.push([ac.lat, ac.lon, ac.alt]);
-      if (e.history.length > 22) e.history.shift();
+      var last = e.history[e.history.length - 1];
+      if (!last || RR.distNm(last[0], last[1], ac.lat, ac.lon) > 0.25) e.history.push([ac.lat, ac.lon, ac.alt]);
+      if (e.history.length > 700) e.history.shift();
       refreshEntry(e);
 
-      if (ac.airliner && !e.routeAsked && e.dist < S.settings.radius * 1.8 && RR.cachedRoute(ac.callsign) === undefined) {
+      if (ac.airliner && !e.routeAsked && e.dist < Math.max(S.radius, 25) * 1.8 && RR.cachedRoute(ac.callsign) === undefined) {
         e.routeAsked = true;
         requestRoute(e, generation);
       }
@@ -155,7 +161,7 @@
 
   function poll() {
     var gen = generation;
-    var radius = Math.min(250, Math.ceil(settings.radius * 1.9));
+    var radius = Math.min(250, Math.ceil(Math.max(S.radius, settings.radius, 15) * 1.9));
     RR.fetchTraffic(S.ap.lat, S.ap.lon, radius, function (err, list) {
       if (gen !== generation) return;
       if (err) { failures++; } else { failures = 0; ingest(list); }
@@ -169,9 +175,11 @@
     window.clearTimeout(pollTimer);
     clearEntries();
     endFollow();
+    fitKey = '';
     firstPoll = true;
     loadAirport();
-    S.bm.setView(S.ap, settings.radius);
+    S.radius = settings.radius;
+    S.bm.setView(S.ap, S.radius);
     RR.ui.hud(S.ap);
     poll();
   }
@@ -179,7 +187,7 @@
   // ---------- selection & browsing ----------
   function browseList() {
     var list = [], id;
-    for (id in S.entries) if (S.entries.hasOwnProperty(id) && S.entries[id].kind !== 'other' && S.entries[id].vis) list.push(S.entries[id]);
+    for (id in S.entries) if (S.entries.hasOwnProperty(id) && S.entries[id].kind !== 'other' && S.entries[id].dist < S.radius * 1.6) list.push(S.entries[id]);
     list.sort(function (a, b) {
       if (a.kind !== b.kind) return a.kind === 'arriving' ? -1 : 1;
       return a.dist - b.dist;
@@ -266,7 +274,7 @@
       e.hdg = (lerpAngle(e.hdg, ac.track, 1 - Math.exp(-dt * 4)) + 360) % 360;
       var bankTarget = Math.max(-28, Math.min(28, e.turn * 7));
       e.bank += (bankTarget - e.bank) * (1 - Math.exp(-dt * 3));
-      if (S.fancy && (e.kind !== 'other' || count++ < 30)) {
+      if (S.fancy && (S.selected ? e === S.selected : (e.kind !== 'other' || (e.dist < S.radius * 1.3 && count++ < 30)))) {
         var sel = e === S.selected, hov = e === S.hover;
         gl3d.push({
           lat: e.lat, lon: e.lon, alt: e.alt, hdg: e.hdg, bank: e.bank, color: COLORS[e.kind],
@@ -277,6 +285,20 @@
     if (S.fancy) S.bm.draw3D(gl3d);
     S.bm.update(dt);
     director(now);
+    syncFit();
+  }
+
+  // Whenever a flight is pinned (not merely hovered), zoom out to frame its whole route; unpinning returns to the airport.
+  var fitKey = '';
+
+  function syncFit() {
+    var e = S.selected, key = e && !follow ? e.id + (e.legTo ? ':r' : '') : '';
+    if (key === fitKey) return;
+    fitKey = key;
+    if (!key || !e.legFrom || !e.legTo) return S.bm.setFit(null);
+    var pts = [{ lat: S.ap.lat, lon: S.ap.lon }, { lat: e.lat, lon: e.lon }, e.legFrom, e.legTo];
+    if (e.history.length) pts.push({ lat: e.history[0][0], lon: e.history[0][1] });
+    S.bm.setFit(pts);
   }
 
   // ---------- presenting: projection, DOM, canvas ----------
@@ -326,7 +348,9 @@
       if (!S.entries.hasOwnProperty(id)) continue;
       e = S.entries[id];
       var p = S.bm.project(e.lat, e.lon, e.alt);
-      e.vis = !!p && p.x > -60 && p.x < size.x + 60 && p.y > -60 && p.y < size.y + 60;
+      e.vis = !!p && p.x > -60 && p.x < size.x + 60 && p.y > -60 && p.y < size.y + 60 &&
+        (e.kind !== 'other' || e.dist < S.radius * 1.3) &&     // keep far-off background traffic out of the picture
+        (!S.selected || e === S.selected);                     // a pinned flight is shown on its own
       if (p) { e.sx = p.x; e.sy = p.y; }
       if (e.vis !== e.shown) { e.el.style.display = e.vis ? '' : 'none'; e.shown = e.vis; }
       if (e.vis) {
@@ -345,7 +369,7 @@
     if (now - lastLayout > 400) { lastLayout = now; layoutTags(); }
     for (id in S.entries) if (S.entries.hasOwnProperty(id)) applyClass(S.entries[id]);
 
-    RR.fx.draw({ bm: S.bm, ap: S.ap, radius: settings.radius, now: now, entries: S.entries, active: S.active, selected: S.selected, hover: S.hover });
+    RR.fx.draw({ bm: S.bm, ap: S.ap, radius: S.radius, now: now, entries: S.entries, active: S.active, selected: S.selected, hover: S.hover });
 
     if (S.active !== lastActive || now - lastCard > 300) {
       lastActive = S.active;
@@ -358,7 +382,8 @@
       for (id in S.entries) {
         if (!S.entries.hasOwnProperty(id)) continue;
         e = S.entries[id];
-        if (e.vis && e.kind === 'arriving') arr++; else if (e.vis && e.kind === 'departing') dep++;
+        if (e.dist > S.radius * 1.6) continue;
+        if (e.kind === 'arriving') arr++; else if (e.kind === 'departing') dep++;
       }
       RR.ui.counts(arr, dep);
     }
@@ -401,6 +426,28 @@
       if (follow) endFollow();
     },
     pointer: function (x, y) { S.pointer.x = x; S.pointer.y = y; S.pointer.t = Date.now(); },
+    // Live zoom (one step through RR.RADII; not saved). Unpins any flight, since a pinned flight frames its own route.
+    zoom: function (dir) {
+      var i = RR.RADII.indexOf(S.radius);
+      if (i < 0) i = RR.RADII.indexOf(40);
+      var j = Math.max(0, Math.min(RR.RADII.length - 1, i + dir));
+      if (j === i) return;
+      select(null);
+      S.radius = RR.RADII[j];
+      fitKey = '';
+      S.bm.setView(S.ap, S.radius);
+      RR.ui.zoomLabel(S.radius);
+    },
+    // The zoom the app starts at (and returns to after an airport change); saved.
+    setDefaultRadius: function (r) {
+      settings.radius = r;
+      saveSettings();
+      select(null);
+      S.radius = r;
+      fitKey = '';
+      S.bm.setView(S.ap, r);
+      RR.ui.zoomLabel(r);
+    },
     chooseAirport: function (cb) {
       RR.picker.open(function (a) {
         settings.airport = a.iata;
@@ -425,7 +472,7 @@
     RR.fx.init($('fx'));
     window.addEventListener('resize', function () {
       RR.fx.resize(window.innerWidth, window.innerHeight);
-      if (S.bm && S.ap) S.bm.setView(S.ap, settings.radius);
+      if (S.bm && S.ap) S.bm.setView(S.ap, S.radius);
     });
     RR.ui.init();
     loadAirport();

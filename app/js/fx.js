@@ -30,7 +30,7 @@ window.RR = window.RR || {};
     ctx.save();
     ctx.setLineDash([3, 9]);
     ctx.lineWidth = 1.5;
-    ctx.strokeStyle = 'rgba(130,170,255,0.28)';
+    ctx.strokeStyle = 'rgba(130,170,255,0.16)';
     for (var i = 1; i <= 3; i++) {
       ctx.beginPath();
       pathThrough(ring(s.bm, s.ap, s.radius * i / 3, 72));
@@ -49,7 +49,7 @@ window.RR = window.RR || {};
       var p1 = RR.destination(ap.lat, ap.lon, a, R), p2 = RR.destination(ap.lat, ap.lon, a + step + 0.5, R);
       var q1 = bm.project(p1[0], p1[1], 0), q2 = bm.project(p2[0], p2[1], 0);
       if (!q1 || !q2) continue;
-      ctx.fillStyle = 'rgba(94,224,255,' + (0.015 + 0.11 * Math.pow(i / slices, 2)).toFixed(3) + ')';
+      ctx.fillStyle = 'rgba(94,224,255,' + (0.01 + 0.06 * Math.pow(i / slices, 2)).toFixed(3) + ')';
       ctx.beginPath();
       ctx.moveTo(c.x, c.y); ctx.lineTo(q1.x, q1.y); ctx.lineTo(q2.x, q2.y);
       ctx.closePath();
@@ -57,7 +57,7 @@ window.RR = window.RR || {};
     }
     // Pulse ring leaving the airport.
     var t = (s.now % 5000) / 5000;
-    ctx.strokeStyle = 'rgba(94,224,255,' + ((1 - t) * 0.4).toFixed(3) + ')';
+    ctx.strokeStyle = 'rgba(94,224,255,' + ((1 - t) * 0.22).toFixed(3) + ')';
     ctx.lineWidth = 2;
     ctx.beginPath();
     pathThrough(ring(bm, ap, Math.max(0.5, t * s.radius), 56));
@@ -65,7 +65,7 @@ window.RR = window.RR || {};
   }
 
   function drawTrail(s, e) {
-    var pts = [], i, h = e.history;
+    var pts = [], i, h = e.history.slice(-24);
     for (i = 0; i < h.length; i++) pts.push(s.bm.project(h[i][0], h[i][1], h[i][2]));
     pts.push({ x: e.sx, y: e.sy });
     if (pts.length < 2) return;
@@ -100,34 +100,53 @@ window.RR = window.RR || {};
     ctx.restore();
   }
 
+  // Altitude (ft) at distance d nm along the remaining path of length total: keep climbing/holding, then come down to the destination.
+  function profile(e, d, total) {
+    var cruise = e.alt < 25000 && e.ac.vs > 300 ? 36000 : Math.max(e.alt, e.ac.vs < -300 ? e.alt : 0);
+    return Math.max(0, Math.min(cruise, e.alt + Math.max(0, e.ac.vs > 0 ? d * 300 : 0), (total - d) * 330));
+  }
+
+  // The flight's path: what it has actually flown (solid, at its real altitude) plus an estimate from the aircraft's
+  // current position to its destination (dotted). Where we missed the start of the flight, a faint dotted origin leg.
   function drawRoute(s, e) {
-    var route = e.route;
-    if (!route) return;
-    var pts = [], geo = [], i, j;
-    for (i = 0; i + 1 < route.length; i++) {
-      var seg = RR.greatCircle(route[i], route[i + 1], 72);
-      for (j = i ? 1 : 0; j < seg.length; j++) geo.push(seg[j]);
-    }
-    var best = 0, bestD = 1e9;
-    for (i = 0; i < geo.length; i++) {
-      var dd = Math.pow(geo[i][0] - e.lat, 2) + Math.pow((geo[i][1] - e.lon) * Math.cos(e.lat * Math.PI / 180), 2);
-      if (dd < bestD) { bestD = dd; best = i; }
-      pts.push(s.bm.project(geo[i][0], geo[i][1], 0));
-    }
-    var col = rgb(e.kind);
+    if (!e.legFrom || !e.legTo) return;
+    var col = rgb(e.kind), i, pts = [], h = e.history;
     ctx.save();
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(' + col + ',0.9)';
-    ctx.beginPath();
-    pathThrough(pts.slice(0, best + 1));
-    ctx.stroke();
-    ctx.setLineDash([2, 10]);
     ctx.lineCap = 'round';
-    ctx.lineWidth = 3;
-    ctx.strokeStyle = 'rgba(' + col + ',0.6)';
+
+    // observed track
+    for (i = 0; i < h.length; i++) pts.push(s.bm.project(h[i][0], h[i][1], h[i][2]));
+    pts.push({ x: e.sx, y: e.sy });
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = 'rgba(' + col + ',0.95)';
     ctx.beginPath();
-    pathThrough(pts.slice(best));
+    pathThrough(pts);
     ctx.stroke();
+
+    // estimate to the destination
+    var rest = RR.greatCircle({ lat: e.lat, lon: e.lon }, e.legTo, 64);
+    var total = RR.distNm(e.lat, e.lon, e.legTo.lat, e.legTo.lon), rp = [];
+    for (i = 0; i < rest.length; i++) rp.push(s.bm.project(rest[i][0], rest[i][1], profile(e, total * i / (rest.length - 1), total)));
+    ctx.setLineDash([2, 11]);
+    ctx.lineWidth = 3.5;
+    ctx.strokeStyle = 'rgba(' + col + ',0.75)';
+    ctx.beginPath();
+    pathThrough([{ x: e.sx, y: e.sy }].concat(rp));
+    ctx.stroke();
+
+    // unobserved start of the flight
+    if (h.length) {
+      var first = h[0], gap = RR.distNm(e.legFrom.lat, e.legFrom.lon, first[0], first[1]);
+      if (gap > 8) {
+        var back = RR.greatCircle(e.legFrom, { lat: first[0], lon: first[1] }, 40), bp = [];
+        for (i = 0; i < back.length; i++) bp.push(s.bm.project(back[i][0], back[i][1], Math.min(first[2], gap > 0 ? first[2] * i / (back.length - 1) : 0)));
+        ctx.lineWidth = 2;
+        ctx.strokeStyle = 'rgba(' + col + ',0.3)';
+        ctx.beginPath();
+        pathThrough(bp.concat([pts[0]]));
+        ctx.stroke();
+      }
+    }
     ctx.restore();
   }
 
@@ -168,8 +187,8 @@ window.RR = window.RR || {};
         if (!s.entries.hasOwnProperty(id)) continue;
         e = s.entries[id];
         if (!e.vis) continue;
-        if (e.kind !== 'other' || e === s.active) drawTrail(s, e);
-        if (s.bm.is3D && (e.kind !== 'other' || e === s.active)) drawStalk(s, e);
+        if (e !== s.active && e.kind !== 'other') drawTrail(s, e);
+        if (s.bm.is3D && e.kind !== 'other') drawStalk(s, e);
       }
       if (s.hover && s.hover.vis && s.hover !== s.selected) drawFocus(s, s.hover, false);
       if (s.selected && s.selected.vis) drawFocus(s, s.selected, true);

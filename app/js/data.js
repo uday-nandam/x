@@ -190,7 +190,7 @@ window.RR = window.RR || {};
 
     if (route) {
       var i = legIndex(route, ap);
-      if (i < 0) return res;               // flight is known to be going somewhere else
+      if (i < 0) { res.from = route[0]; res.to = route[route.length - 1]; return res; }   // known to be going elsewhere
       var canArrive = i > 0, canDepart = i < route.length - 1;
       var kind = canArrive && canDepart ? (h || (ac.vs < 0 ? 'arriving' : 'departing')) : (canArrive ? 'arriving' : 'departing');
       // Close in and low, what the aircraft is actually doing beats stale schedule data.
@@ -198,10 +198,24 @@ window.RR = window.RR || {};
       res.kind = kind;
       var other = kind === 'arriving' ? route[i - 1] : route[i + 1];
       res.city = other ? other.city : '';
+      res.from = kind === 'arriving' ? route[i - 1] : route[i];
+      res.to = kind === 'arriving' ? route[i] : route[i + 1];
       return res;
     }
     if (h) res.kind = h;
     return res;
+  };
+
+  // Schedule data is keyed by callsign, which airlines reuse for different legs. If the aircraft is nowhere near the
+  // great-circle path of the route, the route probably isn't the flight it's actually flying.
+  RR.routePlausible = function (ac, route) {
+    for (var i = 0; i + 1 < route.length; i++) {
+      var gc = greatCircle(route[i], route[i + 1], 48);
+      for (var j = 0; j < gc.length; j++) {
+        if (distNm(ac.lat, ac.lon, gc[j][0], gc[j][1]) < 120) return true;
+      }
+    }
+    return false;
   };
 
   RR.flightLabel = function (cs) {

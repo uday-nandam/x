@@ -4,7 +4,7 @@ window.RR = window.RR || {};
 
 (function (RR) {
   var RAD = Math.PI / 180;
-  var BASE_PITCH = 56, FOLLOW_PITCH = 68, FOLLOW_ZOOM = 11.6, ORBIT_DEG_PER_SEC = 1.1;
+  var BASE_PITCH = 56, FIT_PITCH = 30, FOLLOW_PITCH = 68, FOLLOW_ZOOM = 11.6, ORBIT_DEG_PER_SEC = 1.1;
   var FT = 0.3048;
 
   function mpp(lat, zoom) { return 78271.517 * Math.cos(lat * RAD) / Math.pow(2, zoom); }
@@ -73,7 +73,7 @@ window.RR = window.RR || {};
 
     var base = { lat: 0, lon: 0, zoom: 8 };
     var cur = { lat: 0, lon: 0, zoom: 8, pitch: BASE_PITCH, bearing: 0 };
-    var follow = null, orbit = true, aircraft = [], lastMatrix = null, renderer, scene, camera, plane;
+    var follow = null, fit = null, orbit = true, aircraft = [], lastMatrix = null, renderer, scene, camera, plane;
     var W = 1920, H = 1080;
 
     function readSize() { W = container.clientWidth || 1920; H = container.clientHeight || 1080; }
@@ -140,6 +140,7 @@ window.RR = window.RR || {};
         base.zoom = Math.log(78271.517 * Math.cos(ap.lat * RAD) * H / (2 * radiusNm * 1852)) / Math.LN2;
         cur.lat = base.lat; cur.lon = base.lon; cur.zoom = base.zoom; cur.pitch = BASE_PITCH;
         follow = null;
+        fit = null;
         map.resize();
         apply();
       },
@@ -158,19 +159,33 @@ window.RR = window.RR || {};
 
       setOrbit: function (on) { orbit = on; },
 
+      // Frame a set of {lat, lon} points (a whole flight path) top-down-ish, leaving room for the detail card.
+      // Pass null to return to the airport view.
+      setFit: function (points) {
+        fit = null;
+        if (!points || !points.length) return;
+        var b = new maplibregl.LngLatBounds();
+        for (var i = 0; i < points.length; i++) b.extend([points[i].lon, points[i].lat]);
+        var cam = map.cameraForBounds(b, {
+          padding: { top: 150, bottom: 140, left: 150, right: 720 }, bearing: 0, pitch: FIT_PITCH, maxZoom: 11
+        });
+        if (cam) fit = { lat: cam.center.lat, lon: cam.center.lng, zoom: cam.zoom, pitch: FIT_PITCH };
+      },
+
       // target: {lat, lon, hdg} to chase, or null to return to the airport view.
       setFollow: function (target) { follow = target; },
 
       update: function (dt) {
         var k = 1 - Math.exp(-dt * 2.2);
         var t = follow ? { lat: follow.lat, lon: follow.lon, zoom: FOLLOW_ZOOM, pitch: FOLLOW_PITCH } :
-          { lat: base.lat, lon: base.lon, zoom: base.zoom, pitch: BASE_PITCH };
+          fit ? fit : { lat: base.lat, lon: base.lon, zoom: base.zoom, pitch: BASE_PITCH };
         var kc = follow ? 1 - Math.exp(-dt * 6) : k;      // keep tight on a moving target
         cur.lat += (t.lat - cur.lat) * kc;
         cur.lon += (t.lon - cur.lon) * kc;
         cur.zoom += (t.zoom - cur.zoom) * k;
         cur.pitch += (t.pitch - cur.pitch) * k;
         if (follow) cur.bearing = (lerpAngle(cur.bearing, follow.hdg + 25, k * 0.6) + 360) % 360;
+        else if (fit) cur.bearing = (lerpAngle(cur.bearing, 0, k * 0.6) + 360) % 360;
         else if (orbit) cur.bearing = (cur.bearing + ORBIT_DEG_PER_SEC * dt) % 360;
         apply();
         map.triggerRepaint();

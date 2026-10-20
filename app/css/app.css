@@ -34,6 +34,13 @@ body.pointer { cursor: default; }
 body.pointer #gear { opacity: 1; pointer-events: auto; cursor: pointer; }
 #gear:hover { background: #2f5fd0; }
 
+#zoom { z-index: 1000; position: absolute; right: 48px; bottom: 70px; width: 84px; text-align: center; border-radius: 42px; padding: 6px 0;
+  background: rgba(8, 14, 34, 0.7); border: 1px solid rgba(140, 170, 255, 0.3); opacity: 0.0; pointer-events: none; transition: opacity 0.4s; }
+body.pointer #zoom { opacity: 1; pointer-events: auto; }
+#zoom-in, #zoom-out { height: 64px; line-height: 60px; font-size: 44px; cursor: pointer; border-radius: 32px; margin: 0 8px; }
+#zoom-in:hover, #zoom-out:hover { background: #2f5fd0; }
+#zoom-label { font-size: 17px; color: #a9bbe6; padding: 2px 0; }
+
 /* ---------- detail card ---------- */
 #card { z-index: 1000; position: absolute; top: 124px; right: 48px; width: 520px; padding: 24px 30px 20px; border-radius: 24px;
   background: rgba(8, 14, 34, 0.95); border: 1px solid rgba(140, 170, 255, 0.24); box-shadow: 0 14px 50px rgba(0, 0, 0, 0.45);
@@ -80,7 +87,7 @@ body.pointer #gear { opacity: 1; pointer-events: auto; cursor: pointer; }
 @keyframes toastin { from { opacity: 0; transform: translateX(-60px); } to { opacity: 1; transform: none; } }
 
 #status { z-index: 1000; position: absolute; bottom: 70px; left: 50%; width: 700px; margin-left: -350px; text-align: center; font-size: 24px; color: #ffc15a; }
-#hint { z-index: 1000; position: absolute; bottom: 56px; left: 50%; width: 1100px; margin-left: -550px; text-align: center; font-size: 24px;
+#hint { z-index: 1000; position: absolute; bottom: 56px; left: 50%; width: 1300px; margin-left: -650px; text-align: center; font-size: 24px;
   color: #a9bbe6; padding: 12px 20px; border-radius: 14px; background: rgba(8, 14, 34, 0.6); opacity: 1; transition: opacity 2s; pointer-events: none; }
 #hint.gone { opacity: 0; }
 #credits { z-index: 1000; position: absolute; bottom: 12px; right: 20px; padding: 2px 8px; border-radius: 6px; font-size: 14px;

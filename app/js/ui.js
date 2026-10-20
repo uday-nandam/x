@@ -2,7 +2,6 @@
 window.RR = window.RR || {};
 
 (function (RR) {
-  var RADII = [15, 25, 40, 60, 100];
   var els = {};
   var menuOpen = false, menuIdx = 0;
   var lastWheel = 0, pointerTimer = null;
@@ -56,9 +55,8 @@ window.RR = window.RR || {};
     els.flight.textContent = ac.callsign ? RR.flightLabel(ac.callsign) : (ac.reg || ac.id.toUpperCase());
     els.type.textContent = ac.desc || ac.type || '';
 
-    var route = e.route;
-    if (route && route.length > 1) {
-      var from = route[0], to = route[route.length - 1];
+    if (e.legFrom && e.legTo) {
+      var from = e.legFrom, to = e.legTo;
       var dFrom = RR.distNm(from.lat, from.lon, e.lat, e.lon), dTo = RR.distNm(e.lat, e.lon, to.lat, to.lon);
       var prog = Math.max(0.02, Math.min(0.98, dFrom / Math.max(1, dFrom + dTo)));
       els.from.textContent = from.iata || from.icao;
@@ -73,6 +71,7 @@ window.RR = window.RR || {};
     } else {
       els.route.style.display = 'none';
       els.noroute.style.display = '';
+      els.noroute.textContent = e.routeSuspect ? 'Route unverified \u2014 schedule data doesn\u2019t match this flight' : 'Route not available';
     }
 
     els.alt.textContent = e.alt < 100 ? 'Ground' : num(e.alt) + ' ft';
@@ -105,11 +104,15 @@ window.RR = window.RR || {};
     var S = RR.state, st = S.settings;
     return [
       { label: 'Airport', value: S.ap.iata + ' – ' + S.ap.name, act: function () { closeMenu(); RR.app.chooseAirport(); } },
-      { label: 'Range', value: st.radius + ' nm', adjust: function (dir, wrap) {
-        var i = RADII.indexOf(st.radius);
-        if (i < 0) i = 2;
-        i = wrap ? (i + dir + RADII.length) % RADII.length : Math.max(0, Math.min(RADII.length - 1, i + dir));
-        if (RADII[i] !== st.radius) { st.radius = RADII[i]; RR.app.save(); RR.app.restart(); }
+      { label: 'Default zoom', value: st.radius + ' nm', adjust: function (dir, wrap) {
+        var R = RR.RADII, i = R.indexOf(st.radius);
+        if (i < 0) i = R.indexOf(40);
+        i = wrap ? (i + dir + R.length) % R.length : Math.max(0, Math.min(R.length - 1, i + dir));
+        if (R[i] !== st.radius) RR.app.setDefaultRadius(R[i]);
+      } },
+      { label: 'Save zoom', value: 'current view: ' + S.radius + ' nm' + (S.radius === st.radius ? ' (default)' : ''), act: function () {
+        RR.app.setDefaultRadius(S.radius);
+        renderMenu();
       } },
       { label: 'Graphics', value: { auto: 'Auto', fancy: '3D', lite: 'Flat' }[st.mode], adjust: function (dir) {
         st.mode = cycleOf(['auto', 'fancy', 'lite'], st.mode, dir);
@@ -164,9 +167,11 @@ window.RR = window.RR || {};
     RR.app.touch();
     if (RR.picker.isOpen()) handled = RR.picker.key(e);
     else if (menuOpen) handled = menuKey(k);
+    else if (k === 187 || k === 107 || k === 61 || k === 404) { RR.app.zoom(-1); handled = true; }       // + / green: closer
+    else if (k === 189 || k === 109 || k === 173 || k === 403) { RR.app.zoom(1); handled = true; }        // - / red: wider
     else if (k === 37 || k === 38 || k === 33) { RR.app.cycle(-1); handled = true; }
     else if (k === 39 || k === 40 || k === 34) { RR.app.cycle(1); handled = true; }
-    else if (k === 13 || k === 32 || (k >= 403 && k <= 406) || k === 77) { openMenu(); handled = true; }
+    else if (k === 13 || k === 32 || (k === 405 || k === 406) || k === 77) { openMenu(); handled = true; }
     else if ((k === 461 || k === 27 || k === 8) && RR.app.hasSelection()) { RR.app.clearSelection(); handled = true; }
     if (handled) e.preventDefault();
   }
@@ -207,6 +212,8 @@ window.RR = window.RR || {};
       return;
     }
     if (t.id === 'gear') return openMenu();
+    if (t.id === 'zoom-in') return RR.app.zoom(-1);
+    if (t.id === 'zoom-out') return RR.app.zoom(1);
     var hit = RR.app.hitTest(e.clientX, e.clientY);
     RR.app.select(hit && hit === RR.state.selected ? null : hit);
   }
@@ -215,7 +222,7 @@ window.RR = window.RR || {};
     init: function () {
       var ids = ['hud-code', 'hud-time', 'hud-arr', 'hud-dep', 'hud-name', 'card', 'card-chip', 'card-flight', 'card-type',
         'card-route', 'card-noroute', 'rt-from', 'rt-from-city', 'rt-to', 'rt-to-city', 'rt-prog', 'rt-plane', 'rt-eta',
-        'st-alt', 'st-spd', 'st-vs', 'st-hdg', 'st-dist', 'st-reg', 'toasts', 'status', 'hint', 'settings', 'settings-items'];
+        'st-alt', 'st-spd', 'st-vs', 'st-hdg', 'st-dist', 'st-reg', 'toasts', 'status', 'hint', 'settings', 'settings-items', 'zoom-label'];
       for (var i = 0; i < ids.length; i++) els[ids[i]] = $(ids[i]);
       els.code = els['hud-code']; els.time = els['hud-time']; els.arr = els['hud-arr']; els.dep = els['hud-dep'];
       els.name = els['hud-name']; els.chip = els['card-chip']; els.flight = els['card-flight']; els.type = els['card-type'];
@@ -241,12 +248,15 @@ window.RR = window.RR || {};
       els.name.textContent = ap.name;
       lastArr = lastDep = -1;
       RR.ui.counts(0, 0);
+      RR.ui.zoomLabel(RR.state.radius);
     },
 
     counts: function (arr, dep) {
       if (arr !== lastArr) { els.arr.textContent = arr + ' arriving'; if (lastArr >= 0) bump(els.arr); lastArr = arr; }
       if (dep !== lastDep) { els.dep.textContent = dep + ' departing'; if (lastDep >= 0) bump(els.dep); lastDep = dep; }
     },
+
+    zoomLabel: function (r) { els['zoom-label'].textContent = r + ' nm'; },
 
     status: function (text) {
       els.status.textContent = text;
