@@ -148,15 +148,17 @@ window.RR = window.RR || {};
       }
     }
     ctx.restore();
-    drawPin(s, e.legFrom, col);
-    drawPin(s, e.legTo, col);
+    var pf = s.bm.project(e.legFrom.lat, e.legFrom.lon, 0), pt = s.bm.project(e.legTo.lat, e.legTo.lon, 0);
+    var me = { x: e.sx, y: e.sy };
+    function near(a, b) { return a && b && Math.abs(a.x - b.x) + Math.abs(a.y - b.y) < 100; }
+    drawPin(s, e.legFrom, col, pf, near(me, pf) ? pt : me);
+    drawPin(s, e.legTo, col, pt, near(me, pt) ? pf : me);
   }
 
-  // A labelled pin for an airport at either end of the route.
-  function drawPin(s, apt, col) {
-    if (!apt) return;
-    var p = s.bm.project(apt.lat, apt.lon, 0);
-    if (!p) return;
+  // A labelled pin for an airport at either end of the route. `other` is where the route heads from this pin on screen;
+  // the label goes on the opposite side and below the line so it never sits on the route or under the plane.
+  function drawPin(s, apt, col, p, other) {
+    if (!apt || !p) return;
     ctx.save();
     ctx.fillStyle = 'rgba(8,14,34,0.9)';
     ctx.strokeStyle = 'rgba(' + col + ',1)';
@@ -169,13 +171,23 @@ window.RR = window.RR || {};
     ctx.beginPath();
     ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
     ctx.fill();
+
+    var code = apt.iata || apt.icao || '', city = apt.city || '';
+    ctx.font = '700 24px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    var w = ctx.measureText(code).width;
+    ctx.font = '16px "Helvetica Neue", Helvetica, Arial, sans-serif';
+    w = Math.max(w, ctx.measureText(city).width);
+    var left = other && other.x > p.x && p.x - 16 - w > 24;          // route heads right: label to the left, if it fits
+    ctx.textAlign = left ? 'right' : 'left';
+    var x = left ? p.x - 16 : p.x + 16;
     ctx.shadowColor = '#000';
     ctx.shadowBlur = 6;
+    ctx.fillStyle = '#fff';
     ctx.font = '700 24px "Helvetica Neue", Helvetica, Arial, sans-serif';
-    ctx.fillText(apt.iata || apt.icao || '', p.x + 16, p.y + 2);
+    ctx.fillText(code, x, p.y + 28);
     ctx.font = '16px "Helvetica Neue", Helvetica, Arial, sans-serif';
     ctx.fillStyle = 'rgba(200,215,255,0.85)';
-    ctx.fillText(apt.city || '', p.x + 16, p.y + 22);
+    ctx.fillText(city, x, p.y + 48);
     ctx.restore();
   }
 

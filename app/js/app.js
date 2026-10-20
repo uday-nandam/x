@@ -346,7 +346,7 @@
       if (chosen) placed.push(chosen);
       if (!chosen) e.dy = 0;
       if (e.tagEl.getAttribute('data-dy') !== String(e.dy)) { e.tagEl.style.marginTop = e.dy + 'px'; e.tagEl.setAttribute('data-dy', String(e.dy)); }
-      e.showTag = !!chosen || e === S.selected;
+      e.showTag = !!chosen && e !== S.selected;     // a pinned flight's details live in the card, so no floating label
       if (!chosen) e.side = '';
     }
   }
