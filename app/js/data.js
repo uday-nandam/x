@@ -27,6 +27,27 @@ window.RR = window.RR || {};
 
   var AIRLINER_RE = /^[A-Z]{3}\d/;
 
+  // ---------- what kind of aircraft is it (drives the 3D model / flat icon) ----------
+  var HELI_RE = /^(R22|R44|R66|EC\d\d|AS\d\d|AS3\d|H500|H60|H47|H64|H53|H269|B06|B407|B412|B429|B505|S76|S92|S61|S64|A109|A119|A139|A169|A189|UH\d|AH\d|CH\d|MH\d|HH\d|OH\d|SA3|SA34|BK17|NH90|KA\d\d|MI\d|EXPL|ALO[23]|LAMA|B47)/;
+  var TURBOPROP_RE = /^(AT\d\d|DH8[A-D]|DHC\d|E120|PC12|PC6|PC24X|B190|B350|BE20|BE9[LT]|BE99|SF34|C208|C212|CN35|JS\d\d|SW[234]|F27|F50|D228|D328|L410|AN2|AN24|AN26|AN32|C130|C30J|A400|P180|TBM\d|PAY\d|C441|C425|MU2|SH36|DH\d)/;
+  var BIZJET_RE = /^(GL\d|GLF\d|GALX|G\d{3}|C25[ABCM]|C500|C501|C510|C52[A-C5]|C55[0-9]|C56[0-9X]|C65\d|C68[A-Z0-9]|C700|C750|CL\d\d|E50P|E55P|E545|E550|FA\d+[A-Z]?|F900|F2TH|H25[A-C]|HDJT|LJ\d\d|PRM1|SF50|ASTR|WW24|BE40|MU30|BE4W|LRJET)/;
+  var HEAVY_RE = /^(B74|B77|B78|B76|A33|A34|A35|A38|MD11|DC10|IL96|IL76|C5M|A124|B52|K35|A30B|A310|A306|B762|B763|B764)/;
+  var QUAD_RE = /^(B74|A38|A34[0-9]|IL96|IL76|B52|C5|A124|K35|DC8)/;
+
+  // Returns one of: airliner, heavy, quad, bizjet, turboprop, prop, heli, jet.
+  function shapeOf(type, cat, mil, callsign, airliner) {
+    type = type || '';
+    if (cat === 'A7' || HELI_RE.test(type)) return 'heli';
+    if (QUAD_RE.test(type)) return 'quad';
+    if (cat === 'A5' || HEAVY_RE.test(type)) return 'heavy';
+    if (TURBOPROP_RE.test(type)) return 'turboprop';
+    if (cat === 'A6' || (mil && cat !== 'A3')) return 'jet';
+    if (BIZJET_RE.test(type)) return 'bizjet';
+    if (cat === 'A1' || (cat && cat.charAt(0) === 'B')) return 'prop';
+    if (cat === 'A2' && !airliner) return 'bizjet';
+    return 'airliner';
+  }
+
   function url(u) {
     return CFG.proxy ? CFG.proxy + encodeURIComponent(u) : u;
   }
@@ -81,7 +102,7 @@ window.RR = window.RR || {};
     var alt = onGround ? 0 : (typeof a.alt_baro === 'number' ? a.alt_baro : (a.alt_geom || 0));
     var cs = (a.flight || '').replace(/\s+/g, '');
     var vs = typeof a.baro_rate === 'number' ? a.baro_rate : (typeof a.geom_rate === 'number' ? a.geom_rate : 0);
-    return {
+    var n = {
       id: a.hex,
       callsign: cs,
       airliner: AIRLINER_RE.test(cs),
@@ -96,6 +117,8 @@ window.RR = window.RR || {};
       cat: a.category || '',
       mil: !!(typeof a.dbFlags === 'number' && (a.dbFlags & 1))
     };
+    n.shape = shapeOf(n.type, n.cat, n.mil, n.callsign, n.airliner);
+    return n;
   }
 
   RR.fetchTraffic = function (lat, lon, nm, cb) {
@@ -313,6 +336,7 @@ window.RR = window.RR || {};
     return out;
   }
 
+  RR.shapeOf = shapeOf;
   RR.distNm = distNm;
   RR.bearing = bearing;
   RR.angDiff = angDiff;

@@ -4,6 +4,18 @@
   var POLL_MS = (CFG.pollSeconds || 5) * 1000;
   var STALE_MS = 20000;
   var MAX_OTHER = 60;
+  // Top-down icons (viewBox 0 0 24 24, nose up) for flat mode.
+  var ICONS = {
+    airliner: '<path d="M12 1.5c.9 0 1.6.9 1.6 2v5.3l8.4 5v2.2l-8.4-2.4v4.6l2.3 1.7V22L12 21l-3.9 1v-1.1l2.3-1.7v-4.6L2 16v-2.2l8.4-5V3.5c0-1.1.7-2 1.6-2z"/>',
+    bizjet: '<path d="M12 2c.7 0 1.1.9 1.1 2v5l6.4 5.2v1.9L13.1 13v5l2.4 1.6V22L12 21l-3.5 1v-2.4l2.4-1.6v-5l-6.4 2.1v-1.9L10.9 9V4c0-1.1.4-2 1.1-2z"/>',
+    prop: '<path d="M12 3.5c.6 0 1 .7 1 1.6v3.4l9.4 1.3v2.6L13 11.6v5.6l2.6 1v2.2L12 19.6l-3.6 0.8v-2.2l2.6-1v-5.6l-9.4.3V9.8L11 8.5V5.1c0-.9.4-1.6 1-1.6z"/><path d="M8.5 2.6h7v1.2h-7z"/>',
+    turboprop: '<path d="M12 1.8c.8 0 1.4.9 1.4 2.1v4.4l9 1.2v2.4l-9-.5v5.2l2.6 1.7V22L12 21l-3 1v-1.7l2.6-1.7v-5.2l-9 .5V9.5l9-1.2V3.9c0-1.2.6-2.1 1.4-2.1z"/><path d="M4.6 6.6h4v1H4.6zM15.4 6.6h4v1h-4z"/>',
+    heli: '<path d="M12 6.5c2.1 0 3.2 1.7 3.2 3.9v2.6c0 1.5-1.1 2.6-3.2 2.6s-3.2-1.1-3.2-2.6v-2.6c0-2.2 1.1-3.9 3.2-3.9z"/><path d="M11.4 15.6h1.2V21h-1.2z"/><path d="M9.6 20.4h4.8v1.2H9.6z"/><g class="rotor"><path d="M2.5 11.4h19v1.2h-19z"/><path d="M11.4 2.5h1.2v19h-1.2z"/></g>',
+    jet: '<path d="M12 1.5l1.3 7.4 8.2 11.5v1.7l-8.2-2.4-.6 2.9h-1.4l-.6-2.9-8.2 2.4v-1.7L10.7 8.9z"/>'
+  };
+  ICONS.heavy = ICONS.airliner;
+  ICONS.quad = ICONS.airliner;
+  var ICON_PX = { airliner: 36, heavy: 44, quad: 48, bizjet: 30, turboprop: 32, prop: 26, heli: 34, jet: 30 };
   var PLANE_PATH = 'M12 1.5c.9 0 1.6.9 1.6 2v5.3l8.4 5v2.2l-8.4-2.4v4.6l2.3 1.7V22L12 21l-3.9 1v-1.1l2.3-1.7v-4.6L2 16v-2.2l8.4-5V3.5c0-1.1.7-2 1.6-2z';
   var COLORS = { arriving: 0x5ee0ff, departing: 0xffc15a, other: 0x6d86bd };
   var RAD = Math.PI / 180;
@@ -50,7 +62,8 @@
     var el = document.createElement('div');
     el.className = 'ac other';
     el.style.display = 'none';
-    el.innerHTML = '<div class="plane"><svg viewBox="0 0 24 24"><path d="' + PLANE_PATH + '"/></svg></div>' +
+    var px = ICON_PX[ac.shape] || 36;
+    el.innerHTML = '<div class="plane" style="width:' + px + 'px;height:' + px + 'px;margin:' + (-px / 2) + 'px 0 0 ' + (-px / 2) + 'px"><svg viewBox="0 0 24 24">' + (ICONS[ac.shape] || ICONS.airliner) + '</svg></div>' +
       '<div class="tag"><div class="l1"><span class="chip"></span><span class="city"></span></div><div class="meta"></div></div>';
     markers.appendChild(el);
     return {
@@ -278,7 +291,7 @@
       if (S.fancy && (S.selected ? e === S.selected : (e.kind !== 'other' || (e.dist < S.radius * 1.3 && count++ < 30)))) {
         var sel = e === S.selected, hov = e === S.hover;
         gl3d.push({
-          lat: e.lat, lon: e.lon, alt: e.alt, hdg: e.hdg, bank: e.bank, color: COLORS[e.kind],
+          lat: e.lat, lon: e.lon, alt: e.alt, hdg: e.hdg, bank: e.bank, color: COLORS[e.kind], shape: e.ac.shape,
           px: e.kind === 'other' ? 30 : 58, scale: sel ? 1.45 : hov ? 1.25 : 1, glow: sel ? 0.85 : hov ? 0.6 : e.kind === 'other' ? 0.08 : 0.3
         });
       }

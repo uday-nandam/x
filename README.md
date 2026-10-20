@@ -6,7 +6,7 @@ it gets close. Pick any airport from the remote.
 
 Two renderers, chosen automatically (Settings -> Graphics to override):
 
-* **3D**: a tilted, north-up night map, 3D airliners that bank in turns, altitude stalks and ground
+* **3D**: a tilted, north-up night map, 3D aircraft that bank in turns, each with its own model (airliner, widebody, four-engine heavy, business jet, turboprop, light prop plane, helicopter with a spinning rotor, military jet; picked from the feed's aircraft type and category), altitude stalks and ground
   shadows, fading trails, a radar sweep, and a cinematic camera that swoops down to follow an arrival when nobody has touched
   the remote for a while. Needs a recent browser engine (webOS 6 / Chromium 79+) and WebGL2.
 * **Flat**: the same overlay on a top-down map, for older TVs. The app drops to this on its own if the 3D scene runs
