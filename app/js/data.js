@@ -89,7 +89,9 @@ window.RR = window.RR || {};
       gs: typeof a.gs === 'number' ? a.gs : 0,
       track: typeof a.track === 'number' ? a.track : 0,
       vs: vs,
-      type: a.t || ''
+      type: a.t || '',
+      desc: a.desc || '',
+      reg: a.r || ''
     };
   }
 
@@ -125,7 +127,8 @@ window.RR = window.RR || {};
     for (var i = 0; i < list.length; i++) {
       legs.push({
         iata: list[i].iata || '', icao: list[i].icao || '',
-        city: list[i].location || list[i].iata || list[i].icao || ''
+        city: list[i].location || list[i].iata || list[i].icao || '',
+        lat: list[i].lat, lon: list[i].lon
       });
     }
     return legs;
@@ -207,5 +210,35 @@ window.RR = window.RR || {};
     return (AIRLINES[m[1]] || m[1]) + m[2];
   };
 
+  // Point `nm` nautical miles from (lat, lon) along `brg` degrees.
+  function destination(lat, lon, brg, nm) {
+    var d = nm / 3440.065, b = brg * RAD, la = lat * RAD, lo = lon * RAD;
+    var la2 = Math.asin(Math.sin(la) * Math.cos(d) + Math.cos(la) * Math.sin(d) * Math.cos(b));
+    var lo2 = lo + Math.atan2(Math.sin(b) * Math.sin(d) * Math.cos(la), Math.cos(d) - Math.sin(la) * Math.sin(la2));
+    return [la2 / RAD, ((lo2 / RAD + 540) % 360) - 180];
+  }
+
+  // n+1 [lat, lon] points along the great circle from a to b (each {lat, lon}).
+  function greatCircle(a, b, n) {
+    var la1 = a.lat * RAD, lo1 = a.lon * RAD, la2 = b.lat * RAD, lo2 = b.lon * RAD;
+    var d = 2 * Math.asin(Math.sqrt(Math.pow(Math.sin((la2 - la1) / 2), 2) +
+      Math.cos(la1) * Math.cos(la2) * Math.pow(Math.sin((lo2 - lo1) / 2), 2)));
+    var out = [];
+    for (var i = 0; i <= n; i++) {
+      if (d === 0) { out.push([a.lat, a.lon]); continue; }
+      var f = i / n, A = Math.sin((1 - f) * d) / Math.sin(d), B = Math.sin(f * d) / Math.sin(d);
+      var x = A * Math.cos(la1) * Math.cos(lo1) + B * Math.cos(la2) * Math.cos(lo2);
+      var y = A * Math.cos(la1) * Math.sin(lo1) + B * Math.cos(la2) * Math.sin(lo2);
+      var z = A * Math.sin(la1) + B * Math.sin(la2);
+      out.push([Math.atan2(z, Math.sqrt(x * x + y * y)) / RAD, Math.atan2(y, x) / RAD]);
+    }
+    return out;
+  }
+
   RR.distNm = distNm;
+  RR.bearing = bearing;
+  RR.angDiff = angDiff;
+  RR.destination = destination;
+  RR.greatCircle = greatCircle;
+  RR.legIndex = legIndex;
 })(window.RR);

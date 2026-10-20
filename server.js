@@ -9,7 +9,7 @@ const PORT = process.env.PORT || 8123;
 const ALLOWED = ['api.adsb.lol', 'opendata.adsb.fi', 'vrs-standing-data.adsb.lol'];
 const TYPES = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml'
+  '.json': 'application/json', '.png': 'image/png', '.svg': 'image/svg+xml', '.map': 'application/json'
 };
 
 async function proxy(req, res, target) {

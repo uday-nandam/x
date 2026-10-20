@@ -19,6 +19,21 @@ window.RR = window.RR || {};
     kbdEl = document.getElementById('picker-kbd');
     resEl = document.getElementById('picker-results');
     queryEl = document.getElementById('picker-query');
+    // Magic Remote pointer: click keys and results, scroll the wheel over the list.
+    kbdEl.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('.key') : null;
+      if (!t) return;
+      kbdIdx = parseInt(t.getAttribute('data-i'), 10);
+      zone = 'kbd';
+      press(KEYS[kbdIdx]);
+    });
+    resEl.addEventListener('click', function (e) {
+      var t = e.target.closest ? e.target.closest('.row') : null;
+      if (!t) return;
+      listIdx = parseInt(t.getAttribute('data-i'), 10);
+      pick();
+    });
+    document.getElementById('picker-close').addEventListener('click', function () { RR.picker.close(); });
   }
 
   RR.airportByCode = function (code) {
@@ -57,7 +72,7 @@ window.RR = window.RR || {};
     queryEl.className = query ? '' : 'placeholder';
 
     for (i = 0; i < KEYS.length; i++) {
-      html += '<div class="key' + (zone === 'kbd' && i === kbdIdx ? ' focus' : '') + (i >= 26 ? ' wide' : '') + '">' +
+      html += '<div class="key' + (zone === 'kbd' && i === kbdIdx ? ' focus' : '') + (i >= 26 ? ' wide' : '') + '" data-i="' + i + '">' +
         KEYS[i] + '</div>';
     }
     kbdEl.innerHTML = html;
@@ -66,7 +81,7 @@ window.RR = window.RR || {};
     if (!results.length) html = '<div class="empty">No matching airports</div>';
     for (i = listTop; i < Math.min(results.length, listTop + ROWS); i++) {
       var a = results[i];
-      html += '<div class="row' + (zone === 'list' && i === listIdx ? ' focus' : '') + '">' +
+      html += '<div class="row' + (zone === 'list' && i === listIdx ? ' focus' : '') + '" data-i="' + i + '">' +
         '<b>' + a[0] + '</b><span>' + esc(a[2]) + '<i>' + esc(a[3]) + (a[3] ? ', ' : '') + a[4] + '</i></span></div>';
     }
     if (results.length > ROWS) {
@@ -123,6 +138,14 @@ window.RR = window.RR || {};
     close: function () {
       open = false;
       el.className = 'overlay hidden';
+    },
+
+    // Scroll wheel: move through the results.
+    wheel: function (dir) {
+      if (!results.length) return;
+      zone = 'list';
+      moveList(dir);
+      render();
     },
 
     // Returns true when the key was consumed.

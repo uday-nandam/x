@@ -1,10 +1,18 @@
 # Runway Radar
 
-A live arrivals-and-departures map for any airport, built as an LG webOS TV app. Planes are drawn on a dark map;
-arrivals are cyan, departures amber, with the city they're coming from / heading to, flight number and altitude.
-A banner announces each flight as it gets close. Pick any airport with the remote.
+A live arrivals-and-departures view for any airport, built as an LG webOS TV app. Arrivals are cyan, departures amber,
+each labelled with the city they're coming from / heading to, flight number and altitude. A banner announces each flight as
+it gets close. Pick any airport from the remote.
 
-No build step and no API keys. It's plain ES5/HTML so it runs on older webOS versions too.
+Two renderers, chosen automatically (Settings -> Graphics to override):
+
+* **3D**: a tilted night map that slowly orbits the airport, 3D airliners that bank in turns, altitude stalks and ground
+  shadows, fading trails, a radar sweep, and a cinematic camera that swoops down to follow an arrival when nobody has touched
+  the remote for a while. Needs a recent browser engine (webOS 6 / Chromium 79+) and WebGL2.
+* **Flat**: the same overlay on a top-down map, for older TVs. The app drops to this on its own if the 3D scene runs
+  below ~16 fps or WebGL fails.
+
+No build step and no API keys.
 
 ## Install on the TV
 
@@ -24,11 +32,19 @@ unless you extend them in the Developer Mode app.
 
 ## Using it
 
-* **OK** (or any colour button) opens settings: change airport, change range (15–100 nm).
-* In the airport picker, use the arrows + OK on the on-screen keyboard, or type on a USB/Bluetooth keyboard. Search
-  by IATA code (`IAD`), ICAO code, city or name. About 4,000 airports with scheduled service are included.
-* Your choice is remembered. Defaults live in `app/config.js`; `?airport=PHL&radius=30` also works when opening
-  `app/index.html` in a desktop browser (`npm run serve`).
+**Magic Remote (pointer + scroll wheel)**
+
+* Point at a flight to see its details card (route, progress bar, altitude, speed, vertical rate, heading, aircraft, registration)
+  and its route drawn on the map: solid where it has flown, dotted where it's headed. Click to pin it.
+* Scroll the wheel to step through every visible flight, arrivals first.
+* Click empty space to unpin. A gear button appears in the corner while the pointer is active.
+
+**Standard remote**: Left/Right (or Up/Down) steps through flights, OK opens settings, Back unpins.
+
+**Settings**: airport, range (15-100 nm), graphics (Auto / 3D / Flat), camera (Orbit / Fixed). The airport picker works with the
+pointer, the arrows + OK, or a USB/Bluetooth keyboard, and searches IATA/ICAO code, city or name across about 4,000 airports.
+Choices are remembered. Defaults live in `app/config.js`; URL flags work when you open the app in a desktop browser
+(`npm run serve`): `?airport=PHL&radius=30&mode=fancy|lite&orbit=0&cine=1` (`cine=1` shortens the idle time before the follow-cam).
 
 ## Screensaver caveat
 
@@ -44,9 +60,13 @@ on OLED panels.
 * **Routes**: per-callsign schedule files from adsb.lol's standing-data repo give origin/destination. A flight is an
   *arrival* / *departure* if the selected airport is its destination / origin. With no route known, a flight that's low,
   descending (or climbing) and pointed at (or away from) the airport is classified from its motion instead.
-* **Map**: Leaflet with Esri's key-free dark-gray basemap.
+* **Map**: 3D mode uses MapLibre GL with OpenFreeMap vector tiles and a custom night style, with the aircraft drawn by
+  Three.js as a custom layer. Flat mode uses Leaflet with Esri's key-free dark-gray tiles. Both feed one shared canvas overlay.
 * **Airports**: `app/js/airports.js` is generated from [OurAirports](https://ourairports.com/data/) by
   `tools/build-airports.py`.
+
+Previewing in a browser: `npm start` serves the app and proxies the feeds (they send no CORS headers). That's also what the
+Railway preview runs.
 
 The packaged app makes cross-origin requests from `file://`. The feeds don't send CORS headers, which webOS
 allows for packaged apps; if your TV's browser engine refuses, set `proxy` in `app/config.js` to a CORS proxy prefix.
