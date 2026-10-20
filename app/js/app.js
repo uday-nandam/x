@@ -300,9 +300,7 @@
     if (e.history.length) pts.push({ lat: e.history[0][0], lon: e.history[0][1] });
     // Keep the route clear of the HUD (top left) and the detail card (right): size the margins from their real boxes.
     var hud = $('hud').getBoundingClientRect(), card = $('card');
-    S.bm.setFit(pts, { top: Math.round(hud.bottom + 50), left: 150, bottom: 150, right: card.offsetWidth + 48 + 60 },
-      // Turn the map so the route runs left to right across the wide screen (origin left, destination right).
-      (RR.bearing(e.legFrom.lat, e.legFrom.lon, e.legTo.lat, e.legTo.lon) + 270) % 360);
+    S.bm.setFit(pts, { top: Math.round(hud.bottom + 50), left: 150, bottom: 150, right: card.offsetWidth + 48 + 60 });
   }
 
   // ---------- presenting: projection, DOM, canvas ----------
@@ -474,7 +472,6 @@
     setOrbit: function (on) {
       settings.orbit = on;
       saveSettings();
-      if (S.bm.setOrbit) S.bm.setOrbit(on);
     },
     onGLRender: function () { present(Date.now()); }
   };
@@ -494,7 +491,6 @@
 
     function go() {
       restart();
-      if (S.bm.setOrbit) S.bm.setOrbit(settings.orbit);
       started = fpsStart = Date.now();
       window.requestAnimationFrame(frame);
     }

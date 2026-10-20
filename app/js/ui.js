@@ -120,7 +120,7 @@ window.RR = window.RR || {};
         storeDel('rr.forceLite');
         window.location.reload();
       } },
-      { label: 'Camera', value: st.orbit ? 'Orbit' : 'Fixed', adjust: function () { RR.app.setOrbit(!st.orbit); } },
+      { label: 'Cinematic', value: st.orbit ? 'On' : 'Off', adjust: function () { RR.app.setOrbit(!st.orbit); } },
       { label: 'Close', value: '', act: closeMenu }
     ];
   }

@@ -6,7 +6,7 @@ it gets close. Pick any airport from the remote.
 
 Two renderers, chosen automatically (Settings -> Graphics to override):
 
-* **3D**: a tilted night map that slowly orbits the airport, 3D airliners that bank in turns, altitude stalks and ground
+* **3D**: a tilted, north-up night map, 3D airliners that bank in turns, altitude stalks and ground
   shadows, fading trails, a radar sweep, and a cinematic camera that swoops down to follow an arrival when nobody has touched
   the remote for a while. Needs a recent browser engine (webOS 6 / Chromium 79+) and WebGL2.
 * **Flat**: the same overlay on a top-down map, for older TVs. The app drops to this on its own if the 3D scene runs
@@ -35,7 +35,7 @@ unless you extend them in the Developer Mode app.
 **Magic Remote (pointer + scroll wheel)**
 
 * Point at a flight to see its details card (route, progress bar, altitude, speed, vertical rate, heading, aircraft, registration)
-  and its route drawn on the map: solid where it has flown, dotted where it's headed, with both airports pinned. The 3D map turns so the route runs left to right. Click to pin it: the camera then zooms out to frame the flight's whole route, and eases back to the airport when you unpin.
+  and its route drawn on the map: solid where it has flown, dotted where it's headed, with both airports pinned. Click to pin it: the camera then zooms out to frame the flight's whole route, and eases back to the airport when you unpin.
 * Scroll the wheel to step through every visible flight, arrivals first.
 * Click empty space to unpin. A gear button appears in the corner while the pointer is active.
 
@@ -43,7 +43,7 @@ unless you extend them in the Developer Mode app.
 
 **Standard remote**: Left/Right (or Up/Down) steps through flights, OK or yellow/blue opens settings, Back unpins.
 
-**Settings**: airport, range (15-100 nm), graphics (Auto / 3D / Flat), camera (Orbit / Fixed). The airport picker works with the
+**Settings**: airport, range (15-100 nm), graphics (Auto / 3D / Flat), cinematic follow-camera (On / Off). The airport picker works with the
 pointer, the arrows + OK, or a USB/Bluetooth keyboard, and searches IATA/ICAO code, city or name across about 4,000 airports.
 Choices are remembered. Defaults live in `app/config.js`; URL flags work when you open the app in a desktop browser
 (`npm run serve`): `?airport=PHL&radius=30&mode=fancy|lite&orbit=0&cine=1` (`cine=1` shortens the idle time before the follow-cam).

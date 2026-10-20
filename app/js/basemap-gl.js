@@ -1,10 +1,10 @@
-// Fancy basemap: a pitched, slowly orbiting MapLibre scene with Three.js aircraft drawn as a custom layer.
+// Fancy basemap: a pitched, north-up MapLibre scene with Three.js aircraft drawn as a custom layer.
 // Same interface as FlatBasemap, plus altitude-aware projection (so labels, stalks and trails line up with the 3D planes).
 window.RR = window.RR || {};
 
 (function (RR) {
   var RAD = Math.PI / 180;
-  var BASE_PITCH = 56, FIT_PITCH = 30, FOLLOW_PITCH = 68, FOLLOW_ZOOM = 11.6, ORBIT_DEG_PER_SEC = 1.1;
+  var BASE_PITCH = 56, FIT_PITCH = 30, FOLLOW_PITCH = 68, FOLLOW_ZOOM = 11.6;
   var FT = 0.3048;
 
   function mpp(lat, zoom) { return 78271.517 * Math.cos(lat * RAD) / Math.pow(2, zoom); }
@@ -73,7 +73,7 @@ window.RR = window.RR || {};
 
     var base = { lat: 0, lon: 0, zoom: 8 };
     var cur = { lat: 0, lon: 0, zoom: 8, pitch: BASE_PITCH, bearing: 0 };
-    var follow = null, fit = null, orbit = true, aircraft = [], lastMatrix = null, renderer, scene, camera, plane;
+    var follow = null, fit = null, aircraft = [], lastMatrix = null, renderer, scene, camera, plane;
     var W = 1920, H = 1080;
 
     function readSize() { W = container.clientWidth || 1920; H = container.clientHeight || 1080; }
@@ -158,19 +158,18 @@ window.RR = window.RR || {};
         return { x: (nx + 1) / 2 * W, y: (1 - ny) / 2 * H };
       },
 
-      setOrbit: function (on) { orbit = on; },
 
-      // Frame a set of {lat, lon} points (a whole flight path) top-down-ish inside `pad`, turned so `bearing` is up.
+      // Frame a set of {lat, lon} points (a whole flight path) top-down-ish inside `pad` (north stays up).
       // Pass null to return to the airport view.
-      setFit: function (points, pad, bearing) {
+      setFit: function (points, pad) {
         fit = null;
         if (!points || !points.length) return;
         var b = new maplibregl.LngLatBounds();
         for (var i = 0; i < points.length; i++) b.extend([points[i].lon, points[i].lat]);
         var cam = map.cameraForBounds(b, {
-          padding: pad || { top: 250, bottom: 150, left: 150, right: 520 }, bearing: bearing || 0, pitch: FIT_PITCH, maxZoom: 11
+          padding: pad || { top: 250, bottom: 150, left: 150, right: 520 }, bearing: 0, pitch: FIT_PITCH, maxZoom: 11
         });
-        if (cam) fit = { lat: cam.center.lat, lon: cam.center.lng, zoom: cam.zoom, pitch: FIT_PITCH, bearing: bearing || 0 };
+        if (cam) fit = { lat: cam.center.lat, lon: cam.center.lng, zoom: cam.zoom, pitch: FIT_PITCH };
       },
 
       // target: {lat, lon, hdg} to chase, or null to return to the airport view.
@@ -185,9 +184,7 @@ window.RR = window.RR || {};
         cur.lon += (t.lon - cur.lon) * kc;
         cur.zoom += (t.zoom - cur.zoom) * k;
         cur.pitch += (t.pitch - cur.pitch) * k;
-        if (follow) cur.bearing = (lerpAngle(cur.bearing, follow.hdg + 25, k * 0.6) + 360) % 360;
-        else if (fit) cur.bearing = (lerpAngle(cur.bearing, fit.bearing, k * 0.6) + 360) % 360;
-        else if (orbit) cur.bearing = (cur.bearing + ORBIT_DEG_PER_SEC * dt) % 360;
+        cur.bearing = (lerpAngle(cur.bearing, 0, k) + 360) % 360;       // north is always up
         apply();
         map.triggerRepaint();
       },
